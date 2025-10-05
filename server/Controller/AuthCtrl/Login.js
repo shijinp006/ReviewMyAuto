@@ -40,6 +40,7 @@ export const Login = async (req, res) => {
     const otpToken = jwt.sign({ id: user._id, otp }, process.env.JWT_SECRET, {
       expiresIn: "5m",
     });
+    console.log(otpToken, "otpToken");
 
     // 5️⃣ Send OTP via Twilio SMS
     await client.messages.create({
@@ -118,5 +119,81 @@ export const Sign = async (req, res) => {
   } catch (error) {
     console.error("Signup Error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+
+export const VerifyOTP = async (req, res) => {
+  try {
+    const { otp } = req.body;
+
+    // 1️⃣ Validate input
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP is required.",
+      });
+    }
+
+    // 2️⃣ Get OTP token from headers
+    const otpToken = req.headers["authorization"]?.split(" ")[1]; // Expecting: "Bearer <otpToken>"
+    if (!otpToken) {
+      return res.status(401).json({
+        success: false,
+        message: "OTP token missing. Please login again.",
+      });
+    }
+
+    // 3️⃣ Decode the OTP token
+    let decoded;
+    try {
+      decoded = jwt.verify(otpToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        message: "OTP expired or invalid. Please request a new one.",
+      });
+    }
+
+    // 4️⃣ Compare OTPs
+    if (decoded.otp !== Number(otp)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP. Please try again.",
+      });
+    }
+
+    // 5️⃣ Find user by ID from token
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // 6️⃣ Generate final authentication token (valid for 7 days)
+    const authToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    // 7️⃣ Respond with success
+    return res.status(200).json({
+      success: true,
+      message: "OTP verified successfully. Login successful!",
+      authToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        mobile: user.mobile,
+      },
+    });
+  } catch (error) {
+    console.error("Verify OTP Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
