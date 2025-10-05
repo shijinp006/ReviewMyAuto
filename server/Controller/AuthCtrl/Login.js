@@ -138,6 +138,8 @@ export const VerifyOTP = async (req, res) => {
 
     // 2️⃣ Get OTP token from headers
     const otpToken = req.headers["authorization"]?.split(" ")[1]; // Expecting: "Bearer <otpToken>"
+    console.log(otpToken,"token");
+    
     if (!otpToken) {
       return res.status(401).json({
         success: false,
