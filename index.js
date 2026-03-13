@@ -5,6 +5,9 @@ import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
 import mongoose from "mongoose"
 
+
+import UserRoute from "./User/routes/route.js"
+
 dotenv.config()
 
 const app = express()
@@ -32,6 +35,8 @@ mongoose.connect(process.env.MONGO_URI)
         console.log("MongoDB Error:", err)
     })
 
+    app.use("/api",UserRoute)
+
 // // Test Route
 // app.get("/", (req, res) => {
 //     res.send("API Running 🎯")
@@ -41,5 +46,5 @@ mongoose.connect(process.env.MONGO_URI)
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
+    console.log(`Server running on port localhost// ${PORT}`)
 })
