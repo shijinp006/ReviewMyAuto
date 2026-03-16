@@ -1,7 +1,7 @@
 import express from "express";
 import { RegisterUser, Login } from "../controls/Auth.js";
 import { splashCheck } from "../controls/Splash.js"
-import { refreshTokenController } from "../controls/GenerateRefrshToken.js";
+import { refreshTokenController } from "../controls/GenerateRefreshToken.js";
 const router = express.Router();
 
 router.post("/register", RegisterUser)
