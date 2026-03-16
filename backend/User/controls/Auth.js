@@ -164,7 +164,7 @@ export const Login = async (req, res) => {
 
         if (!match) {
             return res.status(200).json({
-                success: true,
+                success: false,
                 errorCode: "AUTH_003",
                 message: "Invalid credentials"
             });
