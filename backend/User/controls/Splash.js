@@ -8,7 +8,7 @@ export const splashCheck = async (req, res) => {
         const refreshToken = req.cookies?.refreshToken;
         // const deviceId = req.cookies?.deviceId;
         // console.log(deviceId, "deiviceId");
-        const deviceId = req.headers["x-device-id"] || "DEVICEID123";
+        const deviceId = req.headers["x-device-id"] || "DEVICEID123" ||"DEVICEID124";
         const deviceType = req.headers["x-platform"];
         const appVersion = req.headers["x-app-version"];
 
@@ -43,14 +43,11 @@ export const splashCheck = async (req, res) => {
                     { expiresIn: "15m" }
                 );
 
-                res.cookie("accessToken", newAccessToken, {
-                    httpOnly: true,
-                    sameSite: "strict"
-                });
 
                 return res.json({
                     success: true,
                     loggedIn: true,
+                    token : newAccessToken
 
                 });
 

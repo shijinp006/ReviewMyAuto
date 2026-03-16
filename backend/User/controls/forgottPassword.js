@@ -21,12 +21,7 @@ export const forgotPassword = async (req, res) => {
 
         await user.save();
 
-        res.cookie("resetToken", token, {
-            httpOnly: true,
-            secure: false,
-            maxAge: 10 * 60 * 1000
-        });
-
+    
         res.json({
             message: "Reset token generated"
         });

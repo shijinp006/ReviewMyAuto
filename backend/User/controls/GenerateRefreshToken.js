@@ -1,56 +1,38 @@
 import jwt from "jsonwebtoken";
+import DeviceSession from "../models/deviceSchema.js";
 
-export const refreshTokenController = async (req, res) => {
+export const generateTokenController = async (req, res) => {
     try {
 
-        // const refreshToken = req.cookies?.refreshToken;
+        const deviceId = req.headers["x-device-id"] || "DEVICEID123";
+        const deviceType = req.headers["x-platform"];
+        const appVersion = req.headers["x-app-version"];
 
-        // if (!refreshToken) {
-        //     return res.status(401).json({
-        //         success: false,
-        //         message: "Refresh token missing"
-        //     });
-        // }
+        // check device
+        const device = await DeviceSession.findOne({ "device.deviceId": deviceId });
 
-        // let decoded;
+        if (device) {
 
-        // try {
-        //     decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-        // } catch (err) {
-        //     return res.status(403).json({
-        //         success: false,
-        //         message: "Invalid or expired refresh token"
-        //     });
-        // }
+            // remove all userIds from this device
+     
 
-        // const userId = decoded.id;
+            // generate token
+            const token = jwt.sign(
+                { deviceId },
+                process.env.JWT_ACCESS_SECRET,
+                { expiresIn: "30d" }
+            );
 
-        // const newAccessToken = jwt.sign(
-        //     process.env.JWT_ACCESS_SECRET,
-        //     { expiresIn: "15m" }
-        // );
+            return res.json({
+                success: true,
+                message: "Existing device found, users removed",
+                token
+            });
+        }
 
-        const newRefreshToken = jwt.sign(
-            process.env.JWT_REFRESH_SECRET,
-            { expiresIn: "30d" }
-        );
-
-        // res.cookie("accessToken", newAccessToken, {
-        //     httpOnly: true,
-        //     sameSite: "strict",
-        //     secure: process.env.NODE_ENV === "production"
-        // });
-
-        res.cookie("refreshToken", newRefreshToken, {
-            httpOnly: true,
-            sameSite: "strict",
-            secure: process.env.NODE_ENV === "production"
-        });
-
-        return res.status(200).json({
-            success: true,
-            message: "Token refreshed successfully",
-            refreshToken: newRefreshToken
+        return res.status(404).json({
+            success: false,
+            message: "Device not found"
         });
 
     } catch (error) {

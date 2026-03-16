@@ -25,14 +25,14 @@ const generateAccessToken = (id) => {
 // };
 
 // Set Cookie with Token
-const setAuthCookies = (res, accessToken, refreshToken) => {
+// const setAuthCookies = (res, accessToken, refreshToken) => {
 
-    res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 5000
-    });
+//     res.cookie("accessToken", accessToken, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production",
+//         sameSite: "strict",
+//         maxAge: 5000
+//     });
 
     // res.cookie("refreshToken", refreshToken, {
     //     httpOnly: true,
@@ -41,7 +41,7 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
     //     maxAge: 10000
     // });
 
-};
+
 // Register User
 
 export const RegisterUser = async (req, res) => {
@@ -50,7 +50,7 @@ export const RegisterUser = async (req, res) => {
         const { userName, email, phoneNumber, password, confirmPassword } = req.body;
 
         // headers from Flutter
-        const deviceId = req.headers["x-device-id"] || "DEVICEID123"
+        const deviceId = req.headers["x-device-id"] || "DEVICEID124"
         const deviceType = req.headers["x-platform"] || "android"
         const appVersion = req.headers["x-app-version"];
 
@@ -131,7 +131,7 @@ export const RegisterUser = async (req, res) => {
         const accessToken = generateAccessToken(user._id);
         // const refreshToken = generateRefreshToken(user._id);
 
-        setAuthCookies(res, accessToken, deviceId);
+
 
         return res.status(201).json({
             success: true,
@@ -154,7 +154,7 @@ export const Login = async (req, res) => {
 
     try {
 
-        const deviceId = req.headers["x-device-id"] || "DEVICEID123"
+        const deviceId = req.headers["x-device-id"] || "DEVICEID124"
         const deviceType = req.headers["x-platform"] || "android"
         const appVersion = req.headers["x-app-version"];
 
@@ -181,7 +181,7 @@ export const Login = async (req, res) => {
         const accessToken = generateAccessToken(user._id);
         // const refreshToken = generateRefreshToken(user._id);
 
-        setAuthCookies(res, accessToken, deviceId);
+
 
         res.status(200).json({
             success: true,
@@ -201,8 +201,8 @@ export const Login = async (req, res) => {
 // Logout User
 export const Logout = async (req, res) => {
 
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    // res.clearCookie("accessToken");
+    // res.clearCookie("refreshToken");
     // res.clearCookie("deviceId");
 
     res.json({
