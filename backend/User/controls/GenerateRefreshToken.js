@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import DeviceSession from "../models/deviceSchema.js";
 
-export const generateTokenController = async (req, res) => {
+export const refreshTokenController  = async (req, res) => {
     try {
 
         const deviceId = req.headers["x-device-id"] || "DEVICEID123";
