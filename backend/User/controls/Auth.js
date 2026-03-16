@@ -104,10 +104,14 @@ export const RegisterUser = async (req, res) => {
         });
 
         // Save device
-        await Device.create({
-            userId: user._id,
-            deviceId
-        });
+        const existingDevice = await deviceSchema.findOne({ deviceId });
+
+        if (!existingDevice) {
+            await deviceSchema.create({
+                userId: user._id,
+                deviceId
+            });
+        }
 
         // Generate tokens
         const accessToken = generateAccessToken(user._id);
