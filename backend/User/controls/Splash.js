@@ -8,8 +8,11 @@ export const splashCheck = async (req, res) => {
         const refreshToken = req.cookies?.refreshToken;
         // const deviceId = req.cookies?.deviceId;
         // console.log(deviceId, "deiviceId");
+        const deviceId = req.headers["x-device-id"] || "DEVICEID123";
+        const deviceType = req.headers["x-platform"];
+        const appVersion = req.headers["x-app-version"];
 
-        const deviceId = "DEVICE12349"
+
 
 
         /* 1️⃣ Access Token Check */
@@ -59,14 +62,14 @@ export const splashCheck = async (req, res) => {
         /* 3️⃣ Device Session Check */
         if (deviceId) {
 
-            const session = await DeviceSession.findOne({ deviceId });
+            const session = await DeviceSession.findOne({ "device.deviceId": deviceId });
 
             if (session) {
 
                 return res.json({
                     success: true,
                     loggedIn: true,
-                    userId: session.userId
+                    userId: session.userIds
                 });
 
             }

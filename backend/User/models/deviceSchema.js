@@ -1,35 +1,45 @@
 import mongoose from "mongoose";
 
 const splashConfigSchema = new mongoose.Schema({
-    maintenanceMode: {
-        type: Boolean,
-        default: false
-    },
 
-    minAppVersion: {
-        type: String,
-        default: "1.0.0"
-    },
+  maintenanceMode: {
+    type: Boolean,
+    default: false
+  },
 
-    latestAppVersion: {
-        type: String,
-        default: "1.0.0"
-    },
+  minAppVersion: {
+    type: String,
+    default: "1.0.0",
+    required: true
+  },
 
-    maintenanceMessage: {
-        type: String,
-        default: "Server under maintenance. Please try later."
-    },
+  latestAppVersion: {
+    type: String,
+    default: "1.0.0"
+  },
+
+  maintenanceMessage: {
+    type: String,
+    default: "Server under maintenance. Please try later."
+  },
+
+  device: {
     deviceId: {
-        type: String
+      type: String,
+      index: true
     },
 
-    userIds: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User"
-        }
-    ]
+    deviceType: {
+      type: String,
+      enum: ["android", "ios", "web"],
+      lowercase: true
+    }
+  },
+
+  userIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  }]
 
 }, { timestamps: true });
 

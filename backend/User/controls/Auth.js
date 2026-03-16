@@ -18,14 +18,14 @@ const generateAccessToken = (id) => {
     });
 };
 
-const generateRefreshToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-        expiresIn: "5s"
-    });
-};
+// const generateRefreshToken = (id) => {
+//     return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
+//         expiresIn: "10s"
+//     });
+// };
 
 // Set Cookie with Token
-const setAuthCookies = (res, accessToken, refreshToken, deviceId) => {
+const setAuthCookies = (res, accessToken, refreshToken) => {
 
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
@@ -34,25 +34,31 @@ const setAuthCookies = (res, accessToken, refreshToken, deviceId) => {
         maxAge: 5000
     });
 
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 5000
-    });
+    // res.cookie("refreshToken", refreshToken, {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     sameSite: "strict",
+    //     maxAge: 10000
+    // });
 
 };
 // Register User
 
 export const RegisterUser = async (req, res) => {
     try {
-        const { userName, email, phoneNumber, password, confirmPassword, deviceId } = req.body;
+
+        const { userName, email, phoneNumber, password, confirmPassword } = req.body;
+
+        // headers from Flutter
+        const deviceId = req.headers["x-device-id"] || "DEVICEID123"
+        const deviceType = req.headers["x-platform"] || "android"
+        const appVersion = req.headers["x-app-version"];
 
         // Required fields
-        if (!userName || !email || !phoneNumber || !password || !confirmPassword || !deviceId) {
+        if (!userName || !email || !phoneNumber || !password || !confirmPassword || !deviceId || !deviceType) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required"
+                message: "All fields and device information are required"
             });
         }
 
@@ -79,6 +85,15 @@ export const RegisterUser = async (req, res) => {
                 message: "Passwords do not match"
             });
         }
+        const existingDevice = await deviceSchema.findOne({ "device.deviceId": deviceId });
+
+        if (existingDevice) {
+            return res.status(400).json({
+                success: false,
+                message: "This device is already registered with another user"
+            });
+        }
+
 
         // Check existing user
         const existingUser = await User.findOne({
@@ -92,14 +107,6 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
-         const existingDevice = await deviceSchema.findOne({ deviceId });
-
-         if(existingDevice)  {
-             return res.status(400).json({
-                success: false,
-                message: "DeviceId Already  exists"
-            });
-         }
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -111,26 +118,26 @@ export const RegisterUser = async (req, res) => {
             password: hashedPassword
         });
 
-        // Save device
-       
-
-        if (!existingDevice) {
-            await deviceSchema.create({
-                userIds: user._id,
-                deviceId
-            });
-        }
+        // Save splash config entry
+        await deviceSchema.create({
+            device: {
+                deviceId,
+                deviceType
+            },
+            userIds: [user._id]
+        });
 
         // Generate tokens
         const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
+        // const refreshToken = generateRefreshToken(user._id);
 
-        setAuthCookies(res, accessToken, refreshToken, deviceId);
+        setAuthCookies(res, accessToken, deviceId);
 
         return res.status(201).json({
             success: true,
             accessToken,
             refreshToken,
+            appVersion,
             message: "User registered successfully"
         });
 
@@ -148,7 +155,10 @@ export const Login = async (req, res) => {
 
     try {
 
-        const { email, password, deviceId } = req.body;
+        // const deviceId = req.headers["x-device-id"];
+        // const deviceType = req.headers["x-platform"];
+        // const appVersion = req.headers["x-app-version"];
+        const { email, password, } = req.body;
 
         const user = await User.findOne({ email }).select("+password");
 
