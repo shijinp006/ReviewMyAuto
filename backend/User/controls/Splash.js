@@ -7,6 +7,8 @@ export const splashCheck = async (req, res) => {
         const accessToken = req.cookies?.accessToken;
         const refreshToken = req.cookies?.refreshToken;
         const deviceId = req.cookies?.deviceId;
+        console.log(deviceId,"deiviceId");
+        
 
         /* 1️⃣ Access Token Check */
         if (accessToken) {
