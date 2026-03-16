@@ -6,9 +6,11 @@ export const splashCheck = async (req, res) => {
 
         const accessToken = req.cookies?.accessToken;
         const refreshToken = req.cookies?.refreshToken;
-        const deviceId = req.cookies?.deviceId;
-        console.log(deviceId,"deiviceId");
-        
+        // const deviceId = req.cookies?.deviceId;
+        // console.log(deviceId, "deiviceId");
+
+        const deviceId = "DEVICE12349"
+
 
         /* 1️⃣ Access Token Check */
         if (accessToken) {
@@ -46,7 +48,7 @@ export const splashCheck = async (req, res) => {
                 return res.json({
                     success: true,
                     loggedIn: true,
-                  
+
                 });
 
             } catch (err) {
@@ -61,33 +63,12 @@ export const splashCheck = async (req, res) => {
 
             if (session) {
 
-                const newAccessToken = jwt.sign(
-                    { id: session. userIds },
-                    process.env.JWT_ACCESS_SECRET,
-                    { expiresIn: "15m" }
-                );
-
-                const newRefreshToken = jwt.sign(
-                    { id: session. userIds },
-                    process.env.JWT_REFRESH_SECRET,
-                    { expiresIn: "30d" }
-                );
-
-                res.cookie("accessToken", newAccessToken, {
-                    httpOnly: true,
-                    sameSite: "strict"
-                });
-
-                res.cookie("refreshToken", newRefreshToken, {
-                    httpOnly: true,
-                    sameSite: "strict"
-                });
-
                 return res.json({
                     success: true,
                     loggedIn: true,
-                    userId: session.userIds
+                    userId: session.userId
                 });
+
             }
         }
 
