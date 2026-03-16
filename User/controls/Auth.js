@@ -13,7 +13,7 @@ const phoneRegex = /^[6-9]\d{9}$/;
 // Generate JWT Token
 const generateAccessToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, {
-        expiresIn: "30d"
+        expiresIn: "5s"
     });
 };
 
@@ -30,21 +30,21 @@ const setAuthCookies = (res, accessToken, refreshToken, deviceId) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 15 * 60 * 1000
+        maxAge: 5000
     });
 
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     res.cookie("deviceId", deviceId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: 2000
     });
 
 };
@@ -100,6 +100,8 @@ export const RegisterUser = async (req, res) => {
 
         res.status(201).json({
             success: true,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
             message: "User registered successfully"
         });
 
@@ -144,6 +146,8 @@ export const Login = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
             message: "Login successful"
         });
 
