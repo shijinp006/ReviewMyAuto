@@ -154,9 +154,10 @@ export const Login = async (req, res) => {
 
     try {
 
-        // const deviceId = req.headers["x-device-id"];
-        // const deviceType = req.headers["x-platform"];
-        // const appVersion = req.headers["x-app-version"];
+        const deviceId = req.headers["x-device-id"] || "DEVICEID123"
+        const deviceType = req.headers["x-platform"] || "android"
+        const appVersion = req.headers["x-app-version"];
+
         const { email, password, } = req.body;
 
         const user = await User.findOne({ email }).select("+password");
