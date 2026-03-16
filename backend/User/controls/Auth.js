@@ -92,6 +92,14 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
+         const existingDevice = await deviceSchema.findOne({ deviceId });
+
+         if(existingDevice)  {
+             return res.status(400).json({
+                success: false,
+                message: "DeviceId Already  exists"
+            });
+         }
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -104,7 +112,7 @@ export const RegisterUser = async (req, res) => {
         });
 
         // Save device
-        const existingDevice = await deviceSchema.findOne({ deviceId });
+       
 
         if (!existingDevice) {
             await deviceSchema.create({
@@ -186,7 +194,7 @@ export const Logout = async (req, res) => {
 
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
-    res.clearCookie("deviceId");
+    // res.clearCookie("deviceId");
 
     res.json({
         success: true,
