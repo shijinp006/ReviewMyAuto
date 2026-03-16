@@ -1,6 +1,7 @@
 import User from "../models/userSchema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import deviceSchema from "../models/deviceSchema.js";
 
 
 
@@ -19,7 +20,7 @@ const generateAccessToken = (id) => {
 
 const generateRefreshToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-        expiresIn: "30d"
+        expiresIn: "5s"
     });
 };
 
@@ -37,45 +38,41 @@ const setAuthCookies = (res, accessToken, refreshToken, deviceId) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 30 * 24 * 60 * 60 * 1000
-    });
-
-    res.cookie("deviceId", deviceId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 2000
+        maxAge: 5000
     });
 
 };
 // Register User
 
 export const RegisterUser = async (req, res) => {
-
     try {
-
         const { userName, email, phoneNumber, password, confirmPassword, deviceId } = req.body;
 
-        if (!deviceId) {
+        // Required fields
+        if (!userName || !email || !phoneNumber || !password || !confirmPassword || !deviceId) {
             return res.status(400).json({
                 success: false,
-                message: "Device ID required"
-            })
+                message: "All fields are required"
+            });
         }
+
+        // Email validation
         if (!emailRegex.test(email)) {
             return res.status(400).json({
                 success: false,
-                message: "Please provide a valid email address"
+                message: "Invalid email address"
             });
         }
 
+        // Phone validation
         if (!phoneRegex.test(phoneNumber)) {
             return res.status(400).json({
                 success: false,
-                message: "Phone number must be valid Indian number"
+                message: "Invalid Indian phone number"
             });
         }
 
+        // Password match
         if (password !== confirmPassword) {
             return res.status(400).json({
                 success: false,
@@ -83,31 +80,51 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
+        // Check existing user
+        const existingUser = await User.findOne({
+            $or: [{ email }, { phoneNumber }]
+        });
+
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: "User already exists"
+            });
+        }
+
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Create user
         const user = await User.create({
             userName,
             email,
             phoneNumber,
-            password: hashedPassword,
-
+            password: hashedPassword
         });
 
+        // Save device
+        await Device.create({
+            userId: user._id,
+            deviceId
+        });
+
+        // Generate tokens
         const accessToken = generateAccessToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
 
         setAuthCookies(res, accessToken, refreshToken, deviceId);
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
+            accessToken,
+            refreshToken,
             message: "User registered successfully"
         });
 
     } catch (error) {
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });

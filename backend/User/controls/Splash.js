@@ -1,109 +1,106 @@
-import DeviceSession from "../models/deviceSchema.js"
-import jwt from "jsonwebtoken"
+import DeviceSession from "../models/deviceSchema.js";
+import jwt from "jsonwebtoken";
 
-export const splashCheck = async (req,res)=>{
+export const splashCheck = async (req, res) => {
+    try {
 
- try{
+        const accessToken = req.cookies?.accessToken;
+        const refreshToken = req.cookies?.refreshToken;
+        const deviceId = req.cookies?.deviceId;
 
- const accessToken = req.cookies?.accessToken
- const refreshToken = req.cookies?.refreshToken
- const deviceId = req.cookies?.deviceId
+        /* 1️⃣ Access Token Check */
+        if (accessToken) {
+            try {
+                const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
 
- // 1️⃣ Access token check
- if(accessToken){
-  try{
+                return res.json({
+                    success: true,
+                    loggedIn: true,
+                    userId: decoded.id
+                });
 
-   const decoded = jwt.verify(accessToken,process.env.JWT_ACCESS_SECRET)
+            } catch (err) {
+                // Access token expired → continue
+            }
+        }
 
-   return res.json({
-    success:true,
-    loggedIn:true,
-    userId:decoded.id
-   })
+        /* 2️⃣ Refresh Token Check */
+        if (refreshToken) {
+            try {
 
-  }catch(err){
-   // expired → continue
-  }
- }
+                const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
- // 2️⃣ Refresh token check
- if(refreshToken){
-  try{
+                const newAccessToken = jwt.sign(
+                    { id: decoded.id },
+                    process.env.JWT_ACCESS_SECRET,
+                    { expiresIn: "15m" }
+                );
 
-   const decoded = jwt.verify(refreshToken,process.env.JWT_REFRESH_SECRET)
+                res.cookie("accessToken", newAccessToken, {
+                    httpOnly: true,
+                    sameSite: "strict"
+                });
 
-   const newAccess = jwt.sign(
-    {id:decoded.id},
-    process.env.JWT_ACCESS_SECRET,
-    {expiresIn:"15m"}
-   )
+                return res.json({
+                    success: true,
+                    loggedIn: true,
+                    userId: decoded.id
+                });
 
-   res.cookie("accessToken",newAccess,{
-    httpOnly:true,
-    sameSite:"strict"
-   })
+            } catch (err) {
+                // Refresh token expired → continue
+            }
+        }
 
-   return res.json({
-    success:true,
-    loggedIn:true
-   })
+        /* 3️⃣ Device Session Check */
+        if (deviceId) {
 
-  }catch(err){
-   // refresh expired → continue
-  }
- }
+            const session = await DeviceSession.findOne({ deviceId });
 
- // 3️⃣ Device session recovery
- if(deviceId){
+            if (session) {
 
-  const session = await DeviceSession.findOne({deviceId})
+                const newAccessToken = jwt.sign(
+                    { id: session. userIds },
+                    process.env.JWT_ACCESS_SECRET,
+                    { expiresIn: "15m" }
+                );
 
-  if(session && session.expiresAt > new Date()){
+                const newRefreshToken = jwt.sign(
+                    { id: session. userIds },
+                    process.env.JWT_REFRESH_SECRET,
+                    { expiresIn: "30d" }
+                );
 
-   const accessToken = jwt.sign(
-    {id:session.userId},
-    process.env.JWT_ACCESS_SECRET,
-    {expiresIn:"30d"}
-   )
+                res.cookie("accessToken", newAccessToken, {
+                    httpOnly: true,
+                    sameSite: "strict"
+                });
 
-   const refreshToken = jwt.sign(
-    {id:session.userId},
-    process.env.JWT_REFRESH_SECRET,
-    {expiresIn:"30d"}
-   )
+                res.cookie("refreshToken", newRefreshToken, {
+                    httpOnly: true,
+                    sameSite: "strict"
+                });
 
-   res.cookie("accessToken",accessToken,{
-    httpOnly:true,
-    sameSite:"strict"
-   })
+                return res.json({
+                    success: true,
+                    loggedIn: true,
+                    userId: session.userIds
+                });
+            }
+        }
 
-   res.cookie("refreshToken",refreshToken,{
-    httpOnly:true,
-    sameSite:"strict"
-   })
+        /* 4️⃣ No Session Found */
+        return res.json({
+            success: true,
+            loggedIn: false
+        });
 
-   return res.json({
-    success:true,
-    loggedIn:true
-   })
+    } catch (error) {
 
-  }
+        return res.status(500).json({
+            success: false,
+            message: "Splash check failed"
+        });
 
- }
-
- // 4️⃣ No valid login
- return res.json({
-  success:true,
-  loggedIn:false
- })
-
- }catch(error){
-
- res.status(500).json({
-  success:false,
-  message:"Splash check failed"
- })
-
- }
-
-}
+    }
+};

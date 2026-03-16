@@ -1,26 +1,33 @@
-    import mongoose from "mongoose";
+import mongoose from "mongoose";
 
-    const splashConfigSchema = new mongoose.Schema({
-        maintenanceMode: {
-            type: Boolean,
-            default: false
-        },
+const splashConfigSchema = new mongoose.Schema({
+    maintenanceMode: {
+        type: Boolean,
+        default: false
+    },
 
-        minAppVersion: {
-            type: String,
-            default: "1.0.0"
-        },
+    minAppVersion: {
+        type: String,
+        default: "1.0.0"
+    },
 
-        latestAppVersion: {
-            type: String,
-            default: "1.0.0"
-        },
+    latestAppVersion: {
+        type: String,
+        default: "1.0.0"
+    },
 
-        maintenanceMessage: {
-            type: String,
-            default: "Server under maintenance. Please try later."
+    maintenanceMessage: {
+        type: String,
+        default: "Server under maintenance. Please try later."
+    },
+
+    userIds: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
         }
+    ]
 
-    }, { timestamps: true });
+}, { timestamps: true });
 
-    export default mongoose.model("SplashConfig", splashConfigSchema);
+export default mongoose.model("SplashConfig", splashConfigSchema);
