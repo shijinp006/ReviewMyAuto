@@ -9,7 +9,7 @@ export const splashCheck = async (req, res) => {
         // const deviceId = req.cookies?.deviceId;
         // console.log(deviceId, "deiviceId");
 
-        const deviceId = "DEVICE12348"
+        const deviceId = "DEVICE12349"
 
 
         /* 1️⃣ Access Token Check */
