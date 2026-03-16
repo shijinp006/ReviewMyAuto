@@ -43,7 +43,10 @@ export const splashCheck = async (req, res) => {
                 return res.json({
                     success: true,
                     loggedIn: true,
-                    token: newAccessToken
+                    data: {
+                        token: newAccessToken
+                    }
+
                 });
 
             } catch (err) {
@@ -65,7 +68,7 @@ export const splashCheck = async (req, res) => {
                 });
 
             } else {
-                return res.status(404).json({
+                return res.status(200).json({
                     success: false,
                     errorCode: "DEVICE_001",
                     message: "Device not registered"

@@ -25,12 +25,15 @@ export const refreshTokenController = async (req, res) => {
 
             return res.status(200).json({
                 success: true,
+                data: {
+                    token
+                },
                 message: "Token created successfully",
-                token
+
             });
         }
 
-        return res.status(404).json({
+        return res.status(200).json({
             success: false,
             errorCode: "DEVICE_001",
             message: "Device not found"

@@ -123,9 +123,11 @@ export const RegisterUser = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            accessToken,
-            refreshToken,
-            appVersion,
+            data: {
+                accessToken,
+                refreshToken,
+                appVersion
+            },
             message: "User registered successfully"
         });
 
@@ -175,8 +177,10 @@ export const Login = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
+            data: {
+                accessToken: accessToken,
+                refreshToken: refreshToken
+            },
             message: "Login successful"
         });
 
