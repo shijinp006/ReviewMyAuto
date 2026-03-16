@@ -8,12 +8,9 @@ export const splashCheck = async (req, res) => {
         const refreshToken = req.cookies?.refreshToken;
         // const deviceId = req.cookies?.deviceId;
         // console.log(deviceId, "deiviceId");
-        const deviceId = req.headers["x-device-id"] || "DEVICEID123" ||"DEVICEID124";
+        const deviceId = req.headers["x-device-id"] || "DEVICEID123" || "DEVICEID124";
         const deviceType = req.headers["x-platform"];
         const appVersion = req.headers["x-app-version"];
-
-
-
 
         /* 1️⃣ Access Token Check */
         if (accessToken) {
@@ -43,12 +40,10 @@ export const splashCheck = async (req, res) => {
                     { expiresIn: "15m" }
                 );
 
-
                 return res.json({
                     success: true,
                     loggedIn: true,
-                    token : newAccessToken
-
+                    token: newAccessToken
                 });
 
             } catch (err) {
@@ -69,6 +64,12 @@ export const splashCheck = async (req, res) => {
                     userId: session.userIds
                 });
 
+            } else {
+                return res.status(404).json({
+                    success: false,
+                    errorCode: "DEVICE_001",
+                    message: "Device not registered"
+                });
             }
         }
 
@@ -82,7 +83,8 @@ export const splashCheck = async (req, res) => {
 
         return res.status(500).json({
             success: false,
-            message: "Splash check failed"
+            errorCode: "SERVER_001",
+            message: error.message
         });
 
     }

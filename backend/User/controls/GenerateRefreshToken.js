@@ -4,7 +4,7 @@ import DeviceSession from "../models/deviceSchema.js";
 export const refreshTokenController = async (req, res) => {
     try {
 
-        const deviceId = req.headers["x-device-id"] || "DEVICEID123";
+        const deviceId = req.headers["x-device-id"] || "DEVICEID123" || "DEVICEID124";
         const deviceType = req.headers["x-platform"];
         const appVersion = req.headers["x-app-version"];
 
@@ -32,6 +32,7 @@ export const refreshTokenController = async (req, res) => {
 
         return res.status(404).json({
             success: false,
+            errorCode: "DEVICE_001",
             message: "Device not found"
         });
 
@@ -39,6 +40,7 @@ export const refreshTokenController = async (req, res) => {
 
         return res.status(500).json({
             success: false,
+            errorCode: "SERVER_001",
             message: error.message
         });
 

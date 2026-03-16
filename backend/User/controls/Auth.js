@@ -18,28 +18,12 @@ const generateAccessToken = (id) => {
     });
 };
 
-// const generateRefreshToken = (id) => {
-//     return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-//         expiresIn: "10s"
-//     });
-// };
+const generateRefreshToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
+        expiresIn: "30d"
+    });
+};
 
-// Set Cookie with Token
-// const setAuthCookies = (res, accessToken, refreshToken) => {
-
-//     res.cookie("accessToken", accessToken, {
-//         httpOnly: true,
-//         secure: process.env.NODE_ENV === "production",
-//         sameSite: "strict",
-//         maxAge: 5000
-//     });
-
-    // res.cookie("refreshToken", refreshToken, {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === "production",
-    //     sameSite: "strict",
-    //     maxAge: 10000
-    // });
 
 
 // Register User
@@ -58,6 +42,7 @@ export const RegisterUser = async (req, res) => {
         if (!userName || !email || !phoneNumber || !password || !confirmPassword || !deviceId || !deviceType) {
             return res.status(400).json({
                 success: false,
+                errorCode: "VALID_001",
                 message: "All fields and device information are required"
             });
         }
@@ -66,6 +51,7 @@ export const RegisterUser = async (req, res) => {
         if (!emailRegex.test(email)) {
             return res.status(400).json({
                 success: false,
+                errorCode: "VALID_001",
                 message: "Invalid email address"
             });
         }
@@ -74,6 +60,7 @@ export const RegisterUser = async (req, res) => {
         if (!phoneRegex.test(phoneNumber)) {
             return res.status(400).json({
                 success: false,
+                errorCode: "VALID_001",
                 message: "Invalid Indian phone number"
             });
         }
@@ -82,18 +69,20 @@ export const RegisterUser = async (req, res) => {
         if (password !== confirmPassword) {
             return res.status(400).json({
                 success: false,
+                errorCode: "VALID_001",
                 message: "Passwords do not match"
             });
         }
+
         const existingDevice = await deviceSchema.findOne({ "device.deviceId": deviceId });
 
         if (existingDevice) {
             return res.status(400).json({
                 success: false,
+                errorCode: "DEVICE_002",
                 message: "This device is already registered with another user"
             });
         }
-
 
         // Check existing user
         const existingUser = await User.findOne({
@@ -103,6 +92,7 @@ export const RegisterUser = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({
                 success: false,
+                errorCode: "USER_001",
                 message: "User already exists"
             });
         }
@@ -129,13 +119,12 @@ export const RegisterUser = async (req, res) => {
 
         // Generate tokens
         const accessToken = generateAccessToken(user._id);
-        // const refreshToken = generateRefreshToken(user._id);
-
-
+        const refreshToken = generateRefreshToken(user._id);
 
         return res.status(201).json({
             success: true,
             accessToken,
+            refreshToken,
             appVersion,
             message: "User registered successfully"
         });
@@ -144,6 +133,7 @@ export const RegisterUser = async (req, res) => {
 
         return res.status(500).json({
             success: false,
+            errorCode: "SERVER_001",
             message: error.message
         });
 
@@ -165,6 +155,7 @@ export const Login = async (req, res) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
+                errorCode: "USER_002",
                 message: "Invalid credentials"
             });
         }
@@ -174,18 +165,18 @@ export const Login = async (req, res) => {
         if (!match) {
             return res.status(401).json({
                 success: false,
+                errorCode: "AUTH_003",
                 message: "Invalid credentials"
             });
         }
 
         const accessToken = generateAccessToken(user._id);
-        // const refreshToken = generateRefreshToken(user._id);
-
-
+        const refreshToken = generateRefreshToken(user._id);
 
         res.status(200).json({
             success: true,
             accessToken: accessToken,
+            refreshToken: refreshToken,
             message: "Login successful"
         });
 
@@ -193,6 +184,7 @@ export const Login = async (req, res) => {
 
         res.status(500).json({
             success: false,
+            errorCode: "SERVER_001",
             message: error.message
         });
 
