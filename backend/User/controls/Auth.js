@@ -136,7 +136,6 @@ export const RegisterUser = async (req, res) => {
         return res.status(201).json({
             success: true,
             accessToken,
-            refreshToken,
             appVersion,
             message: "User registered successfully"
         });
