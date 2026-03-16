@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import DeviceSession from "../models/deviceSchema.js";
 
-export const refreshTokenController  = async (req, res) => {
+export const refreshTokenController = async (req, res) => {
     try {
 
         const deviceId = req.headers["x-device-id"] || "DEVICEID123";
@@ -14,7 +14,7 @@ export const refreshTokenController  = async (req, res) => {
         if (device) {
 
             // remove all userIds from this device
-     
+
 
             // generate token
             const token = jwt.sign(
@@ -23,9 +23,9 @@ export const refreshTokenController  = async (req, res) => {
                 { expiresIn: "30d" }
             );
 
-            return res.json({
+            return res.status(200).json({
                 success: true,
-                message: "Existing device found, users removed",
+                message: "Token created successfully",
                 token
             });
         }
