@@ -163,8 +163,8 @@ export const Login = async (req, res) => {
         const match = await bcrypt.compare(password, user.password);
 
         if (!match) {
-            return res.status(401).json({
-                success: false,
+            return res.status(200).json({
+                success: true,
                 errorCode: "AUTH_003",
                 message: "Invalid credentials"
             });
