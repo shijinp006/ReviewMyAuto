@@ -7,6 +7,6 @@ router.post("/register", RegisterUser)
 router.post("/login", Login)
 
 
-router.post("/splash-check", splashCheck);
+router.post("/device-check", splashCheck);
 
 export default router
