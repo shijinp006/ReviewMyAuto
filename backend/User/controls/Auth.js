@@ -108,7 +108,7 @@ export const RegisterUser = async (req, res) => {
 
         if (!existingDevice) {
             await deviceSchema.create({
-                userId: user._id,
+                userIds: user._id,
                 deviceId
             });
         }

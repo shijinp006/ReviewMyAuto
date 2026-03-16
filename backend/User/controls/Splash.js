@@ -44,7 +44,7 @@ export const splashCheck = async (req, res) => {
                 return res.json({
                     success: true,
                     loggedIn: true,
-                    userId: decoded.id
+                  
                 });
 
             } catch (err) {

@@ -20,6 +20,9 @@ const splashConfigSchema = new mongoose.Schema({
         type: String,
         default: "Server under maintenance. Please try later."
     },
+    deviceId: {
+        type: String
+    },
 
     userIds: [
         {
