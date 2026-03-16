@@ -178,7 +178,7 @@ export const Login = async (req, res) => {
         }
 
         const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
+        // const refreshToken = generateRefreshToken(user._id);
 
         setAuthCookies(res, accessToken, refreshToken, deviceId);
 
