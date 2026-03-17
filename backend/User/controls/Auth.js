@@ -40,7 +40,7 @@ export const RegisterUser = async (req, res) => {
 
         // Required fields
         if (!userName || !email || !phoneNumber || !password || !confirmPassword || !deviceId || !deviceType) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
                 message: "All fields and device information are required"
@@ -49,7 +49,7 @@ export const RegisterUser = async (req, res) => {
 
         // Email validation
         if (!emailRegex.test(email)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
                 message: "Invalid email address"
@@ -58,7 +58,7 @@ export const RegisterUser = async (req, res) => {
 
         // Phone validation
         if (!phoneRegex.test(phoneNumber)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
                 message: "Invalid Indian phone number"
@@ -67,7 +67,7 @@ export const RegisterUser = async (req, res) => {
 
         // Password match
         if (password !== confirmPassword) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
                 message: "Passwords do not match"
@@ -77,7 +77,7 @@ export const RegisterUser = async (req, res) => {
         const existingDevice = await deviceSchema.findOne({ "device.deviceId": deviceId });
 
         if (existingDevice) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "DEVICE_002",
                 message: "This device is already registered with another user"
@@ -90,7 +90,7 @@ export const RegisterUser = async (req, res) => {
         });
 
         if (existingUser) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "USER_001",
                 message: "User already exists"
@@ -155,7 +155,7 @@ export const Login = async (req, res) => {
         const user = await User.findOne({ email }).select("+password");
 
         if (!user) {
-            return res.status(401).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "USER_002",
                 message: "Invalid credentials"
