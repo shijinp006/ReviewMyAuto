@@ -4,8 +4,11 @@ import jwt from "jsonwebtoken";
 export const splashCheck = async (req, res) => {
     try {
 
-        const accessToken = req.cookies?.accessToken;
-        const refreshToken = req.cookies?.refreshToken;
+        let accessToken = req.headers["authorization"];
+        if (accessToken && accessToken.startsWith('Bearer ')) {
+            accessToken = accessToken.split(' ')[1];
+        }
+        const refreshToken = req.headers["x-refresh-token"];
         // const deviceId = req.cookies?.deviceId;
         // console.log(deviceId, "deiviceId");
         const deviceId = req.headers["x-device-id"] || "DEVICEID123" || "DEVICEID124";

@@ -30,16 +30,18 @@ const generateRefreshToken = (id) => {
 
 export const RegisterUser = async (req, res) => {
     try {
-
-        const { userName, email, phoneNumber, password, confirmPassword } = req.body;
+        const { userName, fullName, email, phone, password, confirmPassword } = req.body;
 
         // headers from Flutter
         const deviceId = req.headers["x-device-id"] || "DEVICEID124"
         const deviceType = req.headers["x-platform"] || "android"
+        const deviceName = req.headers["x-device-name"];
+        const deviceCategory = req.headers["x-device-category"] || deviceType;
+        const location = req.headers["x-location"];
         const appVersion = req.headers["x-app-version"];
 
         // Required fields
-        if (!userName || !email || !phoneNumber || !password || !confirmPassword || !deviceId || !deviceType) {
+        if (!userName || !fullName || !email || !phone || !password || !confirmPassword || !deviceId || !deviceType) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
@@ -57,7 +59,7 @@ export const RegisterUser = async (req, res) => {
         }
 
         // Phone validation
-        if (!phoneRegex.test(phoneNumber)) {
+        if (!phoneRegex.test(phone)) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
@@ -86,7 +88,7 @@ export const RegisterUser = async (req, res) => {
 
         // Check existing user
         const existingUser = await User.findOne({
-            $or: [{ email }, { phoneNumber }]
+            $or: [{ email }, { phone }]
         });
 
         if (existingUser) {
@@ -103,8 +105,9 @@ export const RegisterUser = async (req, res) => {
         // Create user
         const user = await User.create({
             userName,
+            fullName,
             email,
-            phoneNumber,
+            phone,
             password: hashedPassword
         });
 
@@ -112,7 +115,11 @@ export const RegisterUser = async (req, res) => {
         await deviceSchema.create({
             device: {
                 deviceId,
-                deviceType
+                deviceType,
+                deviceName,
+                deviceCategory,
+                location,
+                lastLogin: new Date()
             },
             userIds: [user._id]
         });
@@ -174,6 +181,16 @@ export const Login = async (req, res) => {
 
         const accessToken = generateAccessToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
+
+        // Update device session last login
+        await deviceSchema.findOneAndUpdate(
+            { "device.deviceId": deviceId },
+            {
+                $set: { "device.lastLogin": new Date() },
+                $addToSet: { userIds: user._id }
+            },
+            { upsert: true }
+        );
 
         res.status(200).json({
             success: true,

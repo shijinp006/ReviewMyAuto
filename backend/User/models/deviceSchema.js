@@ -26,7 +26,28 @@ const splashConfigSchema = new mongoose.Schema({
   device: {
     deviceId: {
       type: String,
+      required: [true, "Device ID is required"],
       index: true
+    },
+
+    deviceName: {
+      type: String,
+      trim: true
+    },
+
+    deviceCategory: {
+      type: String,
+      trim: true
+    },
+
+    location: {
+      type: String,
+      trim: true
+    },
+
+    lastLogin: {
+      type: Date,
+      default: Date.now
     },
 
     deviceType: {

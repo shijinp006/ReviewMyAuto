@@ -6,13 +6,20 @@ const userSchema = new mongoose.Schema(
         userName: {
             type: String,
             required: [true, "Username is required"],
+            unique: true,
             trim: true,
             minlength: [3, "Username must be at least 3 characters"],
             maxlength: [30, "Username must not exceed 30 characters"],
             match: [
-                /^[a-zA-Z0-9_-]+$/,
-                "Username can only contain letters, numbers, underscores, and hyphens"
+                /^[a-zA-Z0-9._-]+$/,
+                "Username can only contain letters, numbers, underscores, dots, and hyphens"
             ]
+        },
+
+        fullName: {
+            type: String,
+            required: [true, "Full name is required"],
+            trim: true
         },
 
         email: {
@@ -28,15 +35,11 @@ const userSchema = new mongoose.Schema(
             ]
         },
 
-        phoneNumber: {
+        phone: {
             type: String,
             required: [true, "Phone number is required"],
             unique: true,
             trim: true,
-            match: [
-                /^[6-9]\d{9}$/,
-                "Phone number must be a valid 10-digit Indian number starting with 6-9"
-            ]
         },
 
         password: {
@@ -46,6 +49,30 @@ const userSchema = new mongoose.Schema(
             select: false
         },
 
+        dateOfBirth: {
+            type: Date
+        },
+
+        totalVotes: {
+            type: Number,
+            default: 0
+        },
+
+        rank: {
+            type: String,
+            enum: ["beginner", "intermediate", "pro", "expert"],
+            default: "beginner"
+        },
+
+        isVerified: {
+            type: Boolean,
+            default: false
+        },
+
+        profIcon: {
+            type: String,
+            default: ""
+        },
 
         resetPasswordToken: {
             type: String
