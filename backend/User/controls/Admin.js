@@ -10,17 +10,20 @@ import Review from "../models/reviewSchema.js";
  */
 export const getAllStats = async (req, res) => {
     try {
-        // 1. Fetch counts in parallel for performance
+        const userId = req.user.id;
+
+        // 1. Fetch data filtered to logged-in user only
         const [
-            users,
+            user,
             vehicles,
             devices,
             reviewStats
         ] = await Promise.all([
-            User.find().sort({ createdAt: -1 }),
-            Vehicle.find().sort({ createdAt: -1 }).populate("userId", "userName"),
-            DeviceSession.find().sort({ createdAt: -1 }),
+            User.findById(userId),
+            Vehicle.find({ userId }).sort({ createdAt: -1 }).populate("userId", "userName"),
+            DeviceSession.find({ userIds: userId }).sort({ createdAt: -1 }),
             Review.aggregate([
+                { $match: { userId: userId } },
                 {
                     $group: {
                         _id: "$status",
@@ -48,7 +51,7 @@ export const getAllStats = async (req, res) => {
         // 3. Return combined data as a single flat object
         return res.status(200).json({
             success: true,
-            users,
+            user,
             vehicles,
             devices,
             reviewCounts,
