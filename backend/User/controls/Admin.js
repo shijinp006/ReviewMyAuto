@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/userSchema.js";
 import Vehicle from "../models/vehicleSchema.js";
 import DeviceSession from "../models/deviceSchema.js";
@@ -11,6 +12,7 @@ import Review from "../models/reviewSchema.js";
 export const getAllStats = async (req, res) => {
     try {
         const userId = req.user.id;
+        const userObjectId = new mongoose.Types.ObjectId(userId);
 
         // 1. Fetch data filtered to logged-in user only
         const [
@@ -23,7 +25,7 @@ export const getAllStats = async (req, res) => {
             Vehicle.find({ userId }).sort({ createdAt: -1 }).populate("userId", "userName"),
             DeviceSession.find({ userIds: userId }).sort({ createdAt: -1 }),
             Review.aggregate([
-                { $match: { userId: userId } },
+                { $match: { userId: userObjectId } },
                 {
                     $group: {
                         _id: "$status",
