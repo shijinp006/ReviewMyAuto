@@ -14,7 +14,7 @@ const phoneRegex = /^[6-9]\d{9}$/;
 // Generate JWT Token
 const generateAccessToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, {
-        expiresIn: "5s"
+        expiresIn: "1d"
     });
 };
 
