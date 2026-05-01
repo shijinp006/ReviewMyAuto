@@ -45,15 +45,13 @@ export const getAllStats = async (req, res) => {
             }
         });
 
-        // 3. Return combined data
+        // 3. Return combined data as a single flat object
         return res.status(200).json({
             success: true,
-            data: {
-                users: users,
-                vehicles: vehicles,
-                devices: devices,
-                reviewCounts: reviewCounts
-            },
+            users,
+            vehicles,
+            devices,
+            reviewCounts,
             message: "All data fetched successfully"
         });
 

@@ -23,7 +23,7 @@ router.get("/reviews/:vehicleId", GetVehicleReviews);
 
 // Vehicle Routes
 router.post("/add-vehicle", AddVehicle);
-router.get("/my-vehicles", verifyToken, GetMyVehicles);
+router.get("/my-vehicles", GetMyVehicles);
 
 // Admin/Dashboard Stats
 router.get("/all-stats", getAllStats);
