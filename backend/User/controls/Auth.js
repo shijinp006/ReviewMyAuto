@@ -5,9 +5,8 @@ import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
 
-// Lazy initialization variables
+// Lazy initialization variable for Twilio
 let twilioClient = null;
-let transporter = null;
 
 // Email regex validation
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,19 +33,17 @@ const otpStore = new Map();
 // Generate OTP for Registration
 export const GenerateOTP = async (req, res) => {
     try {
-        // Initialize Nodemailer lazily
-        if (!transporter) {
-            transporter = nodemailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: 587,
-                secure: false, // Use STARTTLS on port 587
-                family: 4, // Force IPv4 because user network doesn't support IPv6
-                auth: {
-                    user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-                    pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
-                }
-            });
-        }
+        // Create Nodemailer transporter fresh every time to avoid server caching issues
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // Use STARTTLS on port 587
+            family: 4, // Force IPv4 because user network doesn't support IPv6
+            auth: {
+                user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+                pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
+            }
+        });
 
         // Initialize Twilio lazily
         if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
