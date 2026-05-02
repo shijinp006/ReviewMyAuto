@@ -36,8 +36,8 @@ export const GenerateOTP = async (req, res) => {
         // Create Nodemailer transporter fresh every time to avoid server caching issues
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
-            port: 587,
-            secure: false, // Use STARTTLS on port 587
+            port: 465,
+            secure: true,
             family: 4, // Force IPv4 because user network doesn't support IPv6
             auth: {
                 user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
