@@ -30,7 +30,7 @@ const generateRefreshToken = (id) => {
 
 export const RegisterUser = async (req, res) => {
     try {
-        const { userName, fullName, email, phone, password, confirmPassword } = req.body;
+        const { userName, fullName, email, phone, password } = req.body;
 
         // headers from Flutter
         const deviceId = req.headers["x-device-id"] || "DEVICEID124"
@@ -41,7 +41,7 @@ export const RegisterUser = async (req, res) => {
         const appVersion = req.headers["x-app-version"];
 
         // Required fields
-        if (!userName || !fullName || !email || !phone || !password || !confirmPassword || !deviceId || !deviceType) {
+        if (!userName || !fullName || !email || !phone || !password || !deviceId || !deviceType) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
@@ -68,13 +68,7 @@ export const RegisterUser = async (req, res) => {
         }
 
         // Password match
-        if (password !== confirmPassword) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "VALID_001",
-                message: "Passwords do not match"
-            });
-        }
+
 
         const existingDevice = await deviceSchema.findOne({ "device.deviceId": deviceId });
 
