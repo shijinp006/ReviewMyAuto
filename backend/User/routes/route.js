@@ -1,5 +1,5 @@
 import express from "express";
-import { RegisterUser, Login } from "../controls/Auth.js";
+import { RegisterUser, Login, GenerateOTP } from "../controls/Auth.js";
 import { splashCheck } from "../controls/Splash.js"
 import { refreshTokenController } from "../controls/GenerateRefreshToken.js";
 import { AddReview, GetVehicleReviews } from "../controls/Review.js";
@@ -10,6 +10,7 @@ import verifyToken from "../../Middleware/veryifyToken.js";
 const router = express.Router();
 
 // Auth Routes
+router.post("/generate-otp", GenerateOTP);
 router.post("/register", RegisterUser)
 router.post("/login", Login)
 router.post("/refresh-token", refreshTokenController);
