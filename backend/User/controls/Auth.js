@@ -70,15 +70,6 @@ export const RegisterUser = async (req, res) => {
         // Password match
 
 
-        const existingDevice = await deviceSchema.findOne({ "device.deviceId": deviceId });
-
-        if (existingDevice) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "DEVICE_002",
-                message: "This device is already registered with another user"
-            });
-        }
 
         // Check existing user
         const existingUser = await User.findOne({
