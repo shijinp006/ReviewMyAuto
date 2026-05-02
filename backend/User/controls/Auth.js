@@ -5,22 +5,9 @@ import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
 
-// Twilio setup (fallback to null if no env variables)
+// Lazy initialization variables
 let twilioClient = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-}
-
-// Nodemailer setup
-const transporter = nodemailer.createTransport({
-    service: 'gmail', // You can change this to your email provider
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
-
-
+let transporter = null;
 
 // Email regex validation
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,6 +34,22 @@ const otpStore = new Map();
 // Generate OTP for Registration
 export const GenerateOTP = async (req, res) => {
     try {
+        // Initialize Nodemailer lazily to ensure env vars are loaded
+        if (!transporter && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+        }
+
+        // Initialize Twilio lazily
+        if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+            twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        }
+
         const { email, phone, countryCode } = req.body;
 
         if (!email && (!phone || !countryCode)) {
@@ -89,17 +92,19 @@ export const GenerateOTP = async (req, res) => {
         }, 10 * 60 * 1000);
 
         // Send Email
-        if (email && process.env.EMAIL_USER) {
+        if (email && transporter) {
             try {
                 await transporter.sendMail({
                     from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
                     to: email,
                     subject: 'Your Registration OTP',
-                    text: `Your OTP for registration is: ${otp}. It is valid for 10 minutes.`
+                    text: `Your OTP for registration is: ${otp}.  It is valid for 10 minutes.`
                 });
             } catch (err) {
-                console.error("Failed to send email", err);
+                console.error("Failed to send email:", err.message);
             }
+        } else if (email && !transporter) {
+            console.error("Email requested but EMAIL_USER or EMAIL_PASS is missing in .env");
         }
 
         // Send SMS
