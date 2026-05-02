@@ -4,7 +4,10 @@ import bodyParser from "body-parser"
 import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
 import mongoose from "mongoose"
+import dns from "dns"
 
+// Fix IPv6 networking issues globally (Forces Node to use IPv4 instead of IPv6 for DNS resolution)
+dns.setDefaultResultOrder('ipv4first');
 
 import UserRoute from "./User/routes/route.js"
 
