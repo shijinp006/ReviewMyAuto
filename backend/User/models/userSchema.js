@@ -35,6 +35,13 @@ const userSchema = new mongoose.Schema(
             ]
         },
 
+        countryCode: {
+            type: String,
+            required: [true, "Country code is required"],
+            trim: true,
+            default: "+91"
+        },
+
         phone: {
             type: String,
             required: [true, "Phone number is required"],

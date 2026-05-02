@@ -8,8 +8,8 @@ import deviceSchema from "../models/deviceSchema.js";
 // Email regex validation
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Phone regex validation (Indian format: 10 digits starting with 6-9)
-const phoneRegex = /^[6-9]\d{9}$/;
+// Phone regex validation (general: 7 to 15 digits)
+const phoneRegex = /^\d{7,15}$/;
 
 // Generate JWT Token
 const generateAccessToken = (id) => {
@@ -30,7 +30,7 @@ const generateRefreshToken = (id) => {
 
 export const RegisterUser = async (req, res) => {
     try {
-        const { userName, fullName, email, phone, password } = req.body;
+        const { userName, fullName, email, countryCode, phone, password } = req.body;
 
         // headers from Flutter
         const deviceId = req.headers["x-device-id"] || "DEVICEID124"
@@ -41,7 +41,7 @@ export const RegisterUser = async (req, res) => {
         const appVersion = req.headers["x-app-version"];
 
         // Required fields
-        if (!userName || !fullName || !email || !phone || !password || !deviceId || !deviceType) {
+        if (!userName || !fullName || !email || !countryCode || !phone || !password || !deviceId || !deviceType) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
@@ -63,7 +63,7 @@ export const RegisterUser = async (req, res) => {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
-                message: "Invalid Indian phone number"
+                message: "Invalid phone number"
             });
         }
 
@@ -92,6 +92,7 @@ export const RegisterUser = async (req, res) => {
             userName,
             fullName,
             email,
+            countryCode,
             phone,
             password: hashedPassword
         });
