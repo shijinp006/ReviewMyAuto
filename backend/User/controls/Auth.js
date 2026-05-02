@@ -40,6 +40,7 @@ export const GenerateOTP = async (req, res) => {
                 host: 'smtp.gmail.com',
                 port: 587,
                 secure: false, // Use STARTTLS on port 587
+                family: 4, // Force IPv4 because user network doesn't support IPv6
                 auth: {
                     user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
                     pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
