@@ -92,7 +92,7 @@ export const GenerateOTP = async (req, res) => {
         if (email && process.env.EMAIL_USER) {
             try {
                 await transporter.sendMail({
-                    from: process.env.EMAIL_USER,
+                    from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
                     to: email,
                     subject: 'Your Registration OTP',
                     text: `Your OTP for registration is: ${otp}. It is valid for 10 minutes.`
