@@ -34,13 +34,13 @@ const otpStore = new Map();
 // Generate OTP for Registration
 export const GenerateOTP = async (req, res) => {
     try {
-        // Initialize Nodemailer lazily to ensure env vars are loaded
-        if (!transporter && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        // Initialize Nodemailer lazily
+        if (!transporter) {
             transporter = nodemailer.createTransport({
                 service: 'gmail',
                 auth: {
                     user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-                    pass: process.env.EMAIL_PASS || "abcd efgh ijkl mnop"
+                    pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior" // Note: This is still a fake password!
                 }
             });
         }
@@ -92,7 +92,7 @@ export const GenerateOTP = async (req, res) => {
         }, 10 * 60 * 1000);
 
         // Send Email
-        if (email && transporter) {
+        if (email) {
             try {
                 await transporter.sendMail({
                     from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
@@ -102,9 +102,12 @@ export const GenerateOTP = async (req, res) => {
                 });
             } catch (err) {
                 console.error("Failed to send email:", err.message);
+                return res.status(200).json({
+                    success: false,
+                    errorCode: "EMAIL_001",
+                    message: `Failed to send email: ${err.message}`
+                });
             }
-        } else if (email && !transporter) {
-            console.error("Email requested but EMAIL_USER or EMAIL_PASS is missing in .env");
         }
 
         // Send SMS
