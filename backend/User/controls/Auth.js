@@ -6,7 +6,7 @@ import nodemailer from "nodemailer";
 import twilio from "twilio";
 import dns from "dns";
 import { Resend } from "resend";
-dns.setDefaultResultOrder("ipv4first");
+// dns.setDefaultResultOrder("ipv4first");
 
 // let twilioClient = null;
 
@@ -39,7 +39,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const sendOTPEmail = async (email, otp) => {
     try {
         const response = await resend.emails.send({
-            from: "onboarding@resend.dev",
+            from: process.env.EMAIL_SERVICE,
             to: email,
             subject: "Your OTP Code",
             html: `<h2>Your OTP is: ${otp}</h2>`
