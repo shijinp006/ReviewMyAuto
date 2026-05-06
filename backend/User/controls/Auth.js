@@ -4,8 +4,10 @@ import bcrypt from "bcryptjs";
 import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
+import dns from "dns";
 
-// Lazy initialization variable for Twilio
+// Fix IPv6 networking issues (Forces Node to use IPv4 instead of IPv6 for DNS resolution)
+dns.setDefaultResultOrder('ipv4first');
 let twilioClient = null;
 
 // Email regex validation
