@@ -34,7 +34,7 @@ const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend("re_hh46a3fM_N1ppDv1UmWjEKp3wheXHJpTZ");
 
 const sendOTPEmail = async (email, otp) => {
     try {
