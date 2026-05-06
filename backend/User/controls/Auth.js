@@ -39,7 +39,7 @@ const resend = new Resend("re_hh46a3fM_N1ppDv1UmWjEKp3wheXHJpTZ");
 const sendOTPEmail = async (email, otp) => {
     try {
         const response = await resend.emails.send({
-            from: process.env.EMAIL_SERVICE,
+            from: "shijinp9404@gmail.com",
             to: email,
             subject: "Your OTP Code",
             html: `<h2>Your OTP is: ${otp}</h2>`
