@@ -5,9 +5,10 @@ import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
 import dns from "dns";
+import { promisify } from "util";
 
-// Fix IPv6 networking issues (Forces Node to use IPv4 instead of IPv6 for DNS resolution)
-dns.setDefaultResultOrder('ipv4first');
+const resolve4 = promisify(dns.resolve4);
+
 let twilioClient = null;
 
 // Email regex validation
@@ -33,14 +34,21 @@ const generateRefreshToken = (id) => {
 const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
-// Helper to send email
+// Helper to send email — resolves smtp.gmail.com to IPv4 manually to avoid IPv6
 const sendOTPEmail = async (email, otp, subject, text) => {
     if (!email) return;
+
+    // Manually resolve to IPv4 address to completely bypass IPv6
+    const addresses = await resolve4('smtp.gmail.com');
+    const ipv4Host = addresses[0];
+
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
+        host: ipv4Host,
         port: 587,
         secure: false,
-        family: 4,
+        tls: {
+            servername: 'smtp.gmail.com' // Required for TLS cert validation when connecting by IP
+        },
         auth: {
             user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
             pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
