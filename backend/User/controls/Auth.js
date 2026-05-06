@@ -5,6 +5,7 @@ import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
 import dns from "dns";
+dns.setDefaultResultOrder("ipv4first");
 
 // let twilioClient = null;
 
@@ -32,31 +33,37 @@ const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
-
 const sendOTPEmail = async (email, otp) => {
-    const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        },
-        lookup: (hostname, options, callback) => {
-            dns.lookup(hostname, { family: 4 }, callback);
-        }
-    });
+    try {
+        const transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            },
+            connectionTimeout: 20000,
+            greetingTimeout: 20000,
+            socketTimeout: 30000
+        });
 
-    await transporter.verify(); // 🔍 check connection
+        await transporter.verify();
 
-    return await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Your OTP Code",
-        text: `Your OTP is ${otp}`
-    });
+        const info = await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Your OTP Code",
+            text: `Your OTP is ${otp}`
+        });
+
+        console.log("✅ Email sent:", info.messageId);
+
+    } catch (err) {
+        console.error("❌ EMAIL ERROR:", err);
+        throw err;
+    }
 };
-
 // const sendOTPSms = async (phone, countryCode, otp, text) => {
 //     if (!phone || !countryCode) return;
 //     if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
