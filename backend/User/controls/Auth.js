@@ -34,40 +34,27 @@ const forgotPasswordStore = new Map();
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
 
 const sendOTPEmail = async (email, otp) => {
-    if (!email) throw new Error("Email is required");
-
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
-        secure: false, // STARTTLS
+        secure: false,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
         },
-
-        // ✅ Force IPv4 (important for Render)
         lookup: (hostname, options, callback) => {
             dns.lookup(hostname, { family: 4 }, callback);
         }
     });
 
-    // Check connection before sending
-    await transporter.verify();
+    await transporter.verify(); // 🔍 check connection
 
-    const info = await transporter.sendMail({
-        from: `"OTP Service" <${process.env.EMAIL_USER}>`,
+    return await transporter.sendMail({
+        from: process.env.EMAIL_USER,
         to: email,
-        subject: "Your Registration OTP",
-        text: `Your OTP is: ${otp}. It is valid for 5 minutes.`,
-        html: `
-            <h2>OTP Verification</h2>
-            <p>Your OTP is:</p>
-            <h1>${otp}</h1>
-            <p>This OTP is valid for 5 minutes.</p>
-        `
+        subject: "Your OTP Code",
+        text: `Your OTP is ${otp}`
     });
-
-    console.log("✅ Email sent:", info.messageId);
 };
 
 // const sendOTPSms = async (phone, countryCode, otp, text) => {
@@ -146,12 +133,12 @@ export const RegisterUser = async (req, res) => {
         try {
             await sendOTPEmail(email, otp);
         } catch (err) {
-            console.error("❌ Email failed:", err.message);
+            console.error("❌ FULL EMAIL ERROR:", err);
 
-            return res.status(500).json({
+            return res.status(200).json({
                 success: false,
                 errorCode: "EMAIL_001",
-                message: "Failed to send OTP email"
+                message: err.message
             });
         }
 
