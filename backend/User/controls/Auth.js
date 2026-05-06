@@ -33,35 +33,35 @@ const forgotPasswordStore = new Map();
 
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
 
-// const sendOTPEmail = async (email, otp, subject, text) => {
-//     if (!email) return;
-//     const transporter = nodemailer.createTransport({
-//         host: 'smtp.gmail.com',
-//         port: 465,
-//         secure: true,
-//         family: 4,
-//         localAddress: '0.0.0.0',
-//         tls: {
-//             servername: 'smtp.gmail.com',
-//             rejectUnauthorized: true
-//         },
-//         connectionTimeout: 30000,
-//         greetingTimeout: 30000,
-//         socketTimeout: 60000,
-//         auth: {
-//             user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-//             pass: process.env.EMAIL_PASS || "zxpbfpwrmvacqior"
-//         },
-//         logger: true,
-//         debug: true
-//     });
-//     await transporter.sendMail({
-//         from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-//         to: email,
-//         subject,
-//         text
-//     });
-// };
+const sendOTPEmail = async (email, otp, subject, text) => {
+    if (!email) return;
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        family: 4,
+        localAddress: '0.0.0.0',
+        tls: {
+            servername: 'smtp.gmail.com',
+            rejectUnauthorized: true
+        },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+        auth: {
+            user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+            pass: process.env.EMAIL_PASS || "zxpbfpwrmvacqior"
+        },
+        logger: true,
+        debug: true
+    });
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+        to: email,
+        subject,
+        text
+    });
+};
 
 // const sendOTPSms = async (phone, countryCode, otp, text) => {
 //     if (!phone || !countryCode) return;
