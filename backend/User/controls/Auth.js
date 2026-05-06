@@ -33,34 +33,41 @@ const forgotPasswordStore = new Map();
 
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
 
-const sendOTPEmail = async (email, otp, subject, text) => {
-    if (!email) return;
+const sendOTPEmail = async (email, otp) => {
+    if (!email) throw new Error("Email is required");
+
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        family: 4,
-        localAddress: '0.0.0.0',
-        tls: {
-            servername: 'smtp.gmail.com',
-            rejectUnauthorized: true
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false, // STARTTLS
         auth: {
-            user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-            pass: process.env.EMAIL_PASS || "zxpbfpwrmvacqior"
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
         },
-        logger: true,
-        debug: true
+
+        // ✅ Force IPv4 (important for Render)
+        lookup: (hostname, options, callback) => {
+            dns.lookup(hostname, { family: 4 }, callback);
+        }
     });
-    await transporter.sendMail({
-        from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+
+    // Check connection before sending
+    await transporter.verify();
+
+    const info = await transporter.sendMail({
+        from: `"OTP Service" <${process.env.EMAIL_USER}>`,
         to: email,
-        subject,
-        text
+        subject: "Your Registration OTP",
+        text: `Your OTP is: ${otp}. It is valid for 5 minutes.`,
+        html: `
+            <h2>OTP Verification</h2>
+            <p>Your OTP is:</p>
+            <h1>${otp}</h1>
+            <p>This OTP is valid for 5 minutes.</p>
+        `
     });
+
+    console.log("✅ Email sent:", info.messageId);
 };
 
 // const sendOTPSms = async (phone, countryCode, otp, text) => {
@@ -123,9 +130,9 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
-        // Generate demo OTP
+        // ✅ Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+        const expiresAt = Date.now() + 5 * 60 * 1000;
 
         registrationStore.set(email, {
             userDetails: { userName, fullName, email, countryCode, phone, password },
@@ -135,14 +142,22 @@ export const RegisterUser = async (req, res) => {
             firstResendAt: Date.now()
         });
 
-        // Demo mode: return OTP in response instead of sending email
-        // TODO: Uncomment sendOTPEmail when email service is configured
-        // await sendOTPEmail(email, otp, 'Your Registration OTP', `Your OTP is: ${otp}. Valid for 5 minutes.`);
+        // ✅ Send email
+        try {
+            await sendOTPEmail(email, otp);
+        } catch (err) {
+            console.error("❌ Email failed:", err.message);
+
+            return res.status(500).json({
+                success: false,
+                errorCode: "EMAIL_001",
+                message: "Failed to send OTP email"
+            });
+        }
 
         return res.status(200).json({
             success: true,
-            data: { otp }, // Demo OTP — remove this in production
-            message: "OTP generated successfully. Use the OTP from response to verify."
+            message: "OTP sent successfully to your email"
         });
 
     } catch (error) {
