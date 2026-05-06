@@ -5,6 +5,7 @@ import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
 import dns from "dns";
+import { Resend } from "resend";
 dns.setDefaultResultOrder("ipv4first");
 
 // let twilioClient = null;
@@ -33,34 +34,21 @@ const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 const sendOTPEmail = async (email, otp) => {
     try {
-        const transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            connectionTimeout: 20000,
-            greetingTimeout: 20000,
-            socketTimeout: 30000
-        });
-
-        await transporter.verify();
-
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+        const response = await resend.emails.send({
+            from: "onboarding@resend.dev",
             to: email,
             subject: "Your OTP Code",
-            text: `Your OTP is ${otp}`
+            html: `<h2>Your OTP is: ${otp}</h2>`
         });
 
-        console.log("✅ Email sent:", info.messageId);
+        console.log("✅ Email sent:", response);
 
     } catch (err) {
-        console.error("❌ EMAIL ERROR:", err);
+        console.error("❌ Email error:", err);
         throw err;
     }
 };
