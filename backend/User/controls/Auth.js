@@ -31,24 +31,24 @@ const generateRefreshToken = (id) => {
 const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
-// Helper to send email — forces IPv4 via custom DNS lookup + uses SSL port 465
+// Helper to send email — manually resolves IPv4 to completely avoid IPv6
 const sendOTPEmail = async (email, otp, subject, text) => {
     if (!email) return;
 
+    // Resolve smtp.gmail.com to IPv4 BEFORE creating the transporter
+    const addresses = await dns.promises.resolve4('smtp.gmail.com');
+    const ipv4Host = addresses[0]; // e.g. "142.250.x.x"
+
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
+        host: ipv4Host,  // Raw IPv4 IP — no DNS resolution will happen
         port: 465,
-        secure: true, // SSL on port 465
-        // Force IPv4 at the socket level via custom DNS lookup
-        dnsLookup: (hostname, options, callback) => {
-            dns.resolve4(hostname, (err, addresses) => {
-                if (err) return callback(err);
-                callback(null, addresses[0], 4);
-            });
+        secure: true,
+        tls: {
+            servername: 'smtp.gmail.com' // Needed so TLS cert validation works with the IP
         },
-        connectionTimeout: 15000,  // 15 seconds to connect
-        greetingTimeout: 15000,    // 15 seconds for SMTP greeting
-        socketTimeout: 30000,      // 30 seconds for socket inactivity
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
         auth: {
             user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
             pass: process.env.EMAIL_PASS || "zxpbfpwrmvacqior"
