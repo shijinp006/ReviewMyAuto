@@ -2,11 +2,11 @@ import User from "../models/userSchema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import deviceSchema from "../models/deviceSchema.js";
-import nodemailer from "nodemailer";
-import twilio from "twilio";
-import dns from "dns";
+// import nodemailer from "nodemailer";
+// import twilio from "twilio";
+// import dns from "dns";
 
-let twilioClient = null;
+// let twilioClient = null;
 
 // Email regex validation
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,38 +31,38 @@ const generateRefreshToken = (id) => {
 const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
-// Helper to send email — manually resolves IPv4 to completely avoid IPv6
-const sendOTPEmail = async (email, otp, subject, text) => {
-    if (!email) return;
+// --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
 
-    // Resolve smtp.gmail.com to IPv4 BEFORE creating the transporter
-    const addresses = await dns.promises.resolve4('smtp.gmail.com');
-    const ipv4Host = addresses[0]; // e.g. "142.250.x.x"
+// const sendOTPEmail = async (email, otp, subject, text) => {
+//     if (!email) return;
+//     const transporter = nodemailer.createTransport({
+//         host: 'smtp.gmail.com',
+//         port: 465,
+//         secure: true,
+//         family: 4,
+//         localAddress: '0.0.0.0',
+//         tls: {
+//             servername: 'smtp.gmail.com',
+//             rejectUnauthorized: true
+//         },
+//         connectionTimeout: 30000,
+//         greetingTimeout: 30000,
+//         socketTimeout: 60000,
+//         auth: {
+//             user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+//             pass: process.env.EMAIL_PASS || "zxpbfpwrmvacqior"
+//         },
+//         logger: true,
+//         debug: true
+//     });
+//     await transporter.sendMail({
+//         from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+//         to: email,
+//         subject,
+//         text
+//     });
+// };
 
-    const transporter = nodemailer.createTransport({
-        host: ipv4Host,  // Raw IPv4 IP — no DNS resolution will happen
-        port: 465,
-        secure: true,
-        tls: {
-            servername: 'smtp.gmail.com' // Needed so TLS cert validation works with the IP
-        },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 30000,
-        auth: {
-            user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-            pass: process.env.EMAIL_PASS || "zxpbfpwrmvacqior"
-        }
-    });
-    await transporter.sendMail({
-        from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-        to: email,
-        subject,
-        text
-    });
-};
-
-// Helper to send SMS
 // const sendOTPSms = async (phone, countryCode, otp, text) => {
 //     if (!phone || !countryCode) return;
 //     if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
@@ -82,7 +82,7 @@ const sendOTPEmail = async (email, otp, subject, text) => {
 //     }
 // };
 
-// 1. Register API
+// 1. Register API — generates demo OTP and returns it in response
 export const RegisterUser = async (req, res) => {
     try {
         const { userName, fullName, email, countryCode, phone, password } = req.body;
@@ -123,6 +123,7 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
+        // Generate demo OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
@@ -134,23 +135,14 @@ export const RegisterUser = async (req, res) => {
             firstResendAt: Date.now()
         });
 
-        const textMsg = `Your OTP for registration is: ${otp}. It is valid for 5 minutes.`;
-
-        try {
-            await sendOTPEmail(email, otp, 'Your Registration OTP', textMsg);
-            // await sendOTPSms(phone, countryCode, otp, textMsg);
-        } catch (err) {
-            console.error("Failed to send OTP:", err.message);
-            return res.status(200).json({
-                success: false,
-                errorCode: "EMAIL_001",
-                message: `Failed to send OTP: ${err.message}`
-            });
-        }
+        // Demo mode: return OTP in response instead of sending email
+        // TODO: Uncomment sendOTPEmail when email service is configured
+        // await sendOTPEmail(email, otp, 'Your Registration OTP', `Your OTP is: ${otp}. Valid for 5 minutes.`);
 
         return res.status(200).json({
             success: true,
-            message: "OTP sent successfully. Please verify to complete registration."
+            data: { otp }, // Demo OTP — remove this in production
+            message: "OTP generated successfully. Use the OTP from response to verify."
         });
 
     } catch (error) {
@@ -273,7 +265,7 @@ export const VerifyOTP = async (req, res) => {
     }
 };
 
-// 3. Resend OTP API
+// 3. Resend OTP API — generates new demo OTP and returns it
 export const ResendOTP = async (req, res) => {
     try {
         const { email } = req.body;
@@ -299,22 +291,21 @@ export const ResendOTP = async (req, res) => {
             return res.status(200).json({ success: false, errorCode: "OTP_004", message: "Maximum resend attempts reached. Please try again after 10 minutes." });
         }
 
+        // Generate new demo OTP
         const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
         record.otp = newOtp;
         record.expiresAt = now + 5 * 60 * 1000;
         record.resendCount += 1;
 
-        const textMsg = `Your new OTP for registration is: ${newOtp}. It is valid for 5 minutes.`;
+        // Demo mode: return OTP in response instead of sending email
+        // TODO: Uncomment sendOTPEmail when email service is configured
+        // await sendOTPEmail(email, newOtp, 'Your Resend Registration OTP', `Your new OTP is: ${newOtp}. Valid for 5 minutes.`);
 
-        try {
-            await sendOTPEmail(email, newOtp, 'Your Resend Registration OTP', textMsg);
-            // await sendOTPSms(record.userDetails.phone, record.userDetails.countryCode, newOtp, textMsg);
-        } catch (err) {
-            console.error("Failed to resend OTP:", err.message);
-            return res.status(200).json({ success: false, errorCode: "EMAIL_001", message: `Failed to resend OTP: ${err.message}` });
-        }
-
-        return res.status(200).json({ success: true, message: "OTP resent successfully" });
+        return res.status(200).json({
+            success: true,
+            data: { otp: newOtp }, // Demo OTP — remove this in production
+            message: "New OTP generated successfully"
+        });
 
     } catch (error) {
         return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
@@ -385,7 +376,7 @@ export const Login = async (req, res) => {
     }
 };
 
-// 5. Forgot Password Flow
+// 5. Forgot Password Flow — generates demo OTP and returns it
 
 export const ForgotPassword = async (req, res) => {
     try {
@@ -395,17 +386,21 @@ export const ForgotPassword = async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(200).json({ success: false, errorCode: "USER_003", message: "User not found" });
 
+        // Generate demo OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = Date.now() + 5 * 60 * 1000;
 
         forgotPasswordStore.set(email, { otp, expiresAt, verified: false });
 
-        const textMsg = `Your OTP to reset password is: ${otp}. It is valid for 5 minutes.`;
+        // Demo mode: return OTP in response instead of sending email
+        // TODO: Uncomment sendOTPEmail when email service is configured
+        // await sendOTPEmail(email, otp, 'Password Reset OTP', `Your OTP to reset password is: ${otp}. Valid for 5 minutes.`);
 
-        await sendOTPEmail(email, otp, 'Password Reset OTP', textMsg);
-        // await sendOTPSms(user.phone, user.countryCode, otp, textMsg);
-
-        return res.status(200).json({ success: true, message: "Password reset OTP sent successfully" });
+        return res.status(200).json({
+            success: true,
+            data: { otp }, // Demo OTP — remove this in production
+            message: "Password reset OTP generated successfully"
+        });
     } catch (error) {
         return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
     }
