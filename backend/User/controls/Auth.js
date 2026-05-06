@@ -34,14 +34,14 @@ const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
-const resend = new Resend("re_hh46a3fM_N1ppDv1UmWjEKp3wheXHJpTZ");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTPEmail = async (email, otp) => {
     try {
         console.log("📤 Sending to:", email);
 
         const response = await resend.emails.send({
-            from: "Review My Auto <onboarding@resend.dev>",
+            from: `Review My Auto <${process.env.RESEND_FROM_EMAIL}>`,
             to: email,
             subject: "Your OTP Code",
             html: `<h2>Your OTP is: ${otp}</h2>`
