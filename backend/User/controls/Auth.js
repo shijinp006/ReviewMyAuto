@@ -41,7 +41,7 @@ const sendOTPEmail = async (email, otp) => {
         console.log("📤 Sending to:", email);
 
         const response = await resend.emails.send({
-            from: `Review My Auto <${process.env.RESEND_FROM_EMAIL}>`,
+            from: `Review My Auto <${process.env.EMAIL_SERVICE}>`,
             to: email,
             subject: "Your OTP Code",
             html: `<h2>Your OTP is: ${otp}</h2>`
