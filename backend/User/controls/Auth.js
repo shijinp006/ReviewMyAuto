@@ -27,107 +27,120 @@ const generateRefreshToken = (id) => {
     });
 };
 
-// In-memory store for OTPs (Key: email, Value: OTP)
-const otpStore = new Map();
+// Stores
+const registrationStore = new Map();
+const forgotPasswordStore = new Map();
 
-// Generate OTP for Registration
-export const GenerateOTP = async (req, res) => {
-    try {
-        // Create Nodemailer transporter fresh every time to avoid server caching issues
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false, // Use STARTTLS on port 587
-            family: 4, // Force IPv4 because user network doesn't support IPv6
-            auth: {
-                user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-                pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
-            }
-        });
-
-        // Initialize Twilio lazily
-        if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-            twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// Helper to send email
+const sendOTPEmail = async (email, otp, subject, text) => {
+    if (!email) return;
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, 
+        family: 4, 
+        auth: {
+            user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+            pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
         }
+    });
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
+        to: email,
+        subject,
+        text
+    });
+};
 
-        const { email, phone, countryCode } = req.body;
+// Helper to send SMS
+const sendOTPSms = async (phone, countryCode, otp, text) => {
+    if (!phone || !countryCode) return;
+    if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    }
+    if (twilioClient && process.env.TWILIO_PHONE_NUMBER) {
+        try {
+            const formattedPhone = countryCode.startsWith('+') ? `${countryCode}${phone}` : `+${countryCode}${phone}`;
+            await twilioClient.messages.create({
+                body: text,
+                from: process.env.TWILIO_PHONE_NUMBER,
+                to: formattedPhone
+            });
+        } catch (err) {
+            console.error("Failed to send SMS", err);
+        }
+    }
+};
 
-        if (!email && (!phone || !countryCode)) {
+// 1. Register API
+export const RegisterUser = async (req, res) => {
+    try {
+        const { userName, fullName, email, countryCode, phone, password } = req.body;
+
+        if (!userName || !fullName || !email || !countryCode || !phone || !password) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
-                message: "Either Email or Phone with Country Code is required to generate OTP"
+                message: "All fields are required"
             });
         }
 
-        const query = [];
-        if (email) query.push({ email });
-        if (phone) query.push({ phone });
+        if (!emailRegex.test(email)) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Invalid email address"
+            });
+        }
 
-        // Check if user already exists
+        if (!phoneRegex.test(phone)) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Invalid phone number"
+            });
+        }
+
         const existingUser = await User.findOne({
-            $or: query
+            $or: [{ email }, { phone }, { userName }]
         });
 
         if (existingUser) {
             return res.status(200).json({
                 success: false,
                 errorCode: "USER_001",
-                message: "User already exists with this information"
+                message: "User already exists"
             });
         }
 
-        // Generate a 6-digit common OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const identifier = email || phone;
+        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-        // Store OTP in variable
-        otpStore.set(identifier, otp);
+        registrationStore.set(email, {
+            userDetails: { userName, fullName, email, countryCode, phone, password },
+            otp,
+            expiresAt,
+            resendCount: 0,
+            firstResendAt: Date.now()
+        });
 
-        // Remove OTP after 10 minutes (600,000 ms) to allow enough time for SMS/Email
-        setTimeout(() => {
-            if (otpStore.get(identifier) === otp) {
-                otpStore.delete(identifier);
-            }
-        }, 10 * 60 * 1000);
+        const textMsg = `Your OTP for registration is: ${otp}. It is valid for 5 minutes.`;
 
-        // Send Email
-        if (email) {
-            try {
-                await transporter.sendMail({
-                    from: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-                    to: email,
-                    subject: 'Your Registration OTP',
-                    text: `Your OTP for registration is: ${otp}.  It is valid for 10 minutes.`
-                });
-            } catch (err) {
-                console.error("Failed to send email:", err.message);
-                return res.status(200).json({
-                    success: false,
-                    errorCode: "EMAIL_001",
-                    message: `Failed to send email: ${err.message}`
-                });
-            }
-        }
-
-        // Send SMS
-        if (phone && countryCode && twilioClient && process.env.TWILIO_PHONE_NUMBER) {
-            try {
-                const formattedPhone = countryCode.startsWith('+') ? `${countryCode}${phone}` : `+${countryCode}${phone}`;
-                await twilioClient.messages.create({
-                    body: `Your OTP for registration is: ${otp}. It is valid for 10 minutes.`,
-                    from: process.env.TWILIO_PHONE_NUMBER,
-                    to: formattedPhone
-                });
-            } catch (err) {
-                console.error("Failed to send SMS", err);
-            }
+        try {
+            await sendOTPEmail(email, otp, 'Your Registration OTP', textMsg);
+            await sendOTPSms(phone, countryCode, otp, textMsg);
+        } catch (err) {
+            console.error("Failed to send OTP:", err.message);
+            return res.status(200).json({
+                success: false,
+                errorCode: "EMAIL_001",
+                message: `Failed to send OTP: ${err.message}`
+            });
         }
 
         return res.status(200).json({
             success: true,
-            data: { otp }, // Keeping this here temporarily for testing without credentials
-            message: "OTP generated and sent via Email and SMS successfully"
+            message: "OTP sent successfully. Please verify to complete registration."
         });
 
     } catch (error) {
@@ -139,68 +152,62 @@ export const GenerateOTP = async (req, res) => {
     }
 };
 
-
-// Register User
-
-export const RegisterUser = async (req, res) => {
+// 2. Verify OTP API
+export const VerifyOTP = async (req, res) => {
     try {
-        const { userName, fullName, email, countryCode, phone, password, otp } = req.body;
+        const { email, otp } = req.body;
 
-        // headers from Flutter
-        const deviceId = req.headers["x-device-id"] || "DEVICEID124"
-        const deviceType = req.headers["x-platform"] || "android"
+        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
+        const deviceType = req.headers["x-platform"] || "android";
         const deviceName = req.headers["x-device-name"];
         const deviceCategory = req.headers["x-device-category"] || deviceType;
         const location = req.headers["x-location"];
         const appVersion = req.headers["x-app-version"];
 
-        // Required fields (added otp to requirements)
-        if (!userName || !fullName || !email || !countryCode || !phone || !password || !otp || !deviceId || !deviceType) {
+        if (!email || !otp) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
-                message: "All fields, OTP, and device information are required"
+                message: "Email and OTP are required"
             });
         }
 
-        // Email validation
-        if (!emailRegex.test(email)) {
+        const record = registrationStore.get(email);
+
+        if (!record) {
             return res.status(200).json({
                 success: false,
-                errorCode: "VALID_001",
-                message: "Invalid email address"
+                errorCode: "OTP_002",
+                message: "OTP session not found or expired. Please register again."
             });
         }
 
-        // Phone validation
-        if (!phoneRegex.test(phone)) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "VALID_001",
-                message: "Invalid phone number"
-            });
-        }
-
-        // Password match
-
-
-
-        // Verify OTP
-        const storedOtp = otpStore.get(email) || otpStore.get(phone);
-        if (!storedOtp || storedOtp !== otp) {
+        if (Date.now() > record.expiresAt) {
+            registrationStore.delete(email);
             return res.status(200).json({
                 success: false,
                 errorCode: "OTP_001",
-                message: "Invalid or expired OTP"
+                message: "OTP has expired"
             });
         }
 
-        // Check existing user
+        if (record.otp !== String(otp)) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_001",
+                message: "Invalid OTP"
+            });
+        }
+
+        // OTP Valid. Create user.
+        const { userName, fullName, countryCode, phone, password } = record.userDetails;
+
         const existingUser = await User.findOne({
-            $or: [{ email }, { phone }]
+            $or: [{ email }, { phone }, { userName }]
         });
 
         if (existingUser) {
+            registrationStore.delete(email);
             return res.status(200).json({
                 success: false,
                 errorCode: "USER_001",
@@ -208,20 +215,18 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create user
         const user = await User.create({
             userName,
             fullName,
             email,
             countryCode,
             phone,
-            password: hashedPassword
+            password: hashedPassword,
+            isVerified: true
         });
 
-        // Save splash config entry
         await deviceSchema.create({
             device: {
                 deviceId,
@@ -234,11 +239,8 @@ export const RegisterUser = async (req, res) => {
             userIds: [user._id]
         });
 
-        // Clear the OTP upon successful registration
-        if (email) otpStore.delete(email);
-        if (phone) otpStore.delete(phone);
+        registrationStore.delete(email);
 
-        // Generate tokens
         const accessToken = generateAccessToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
 
@@ -253,25 +255,67 @@ export const RegisterUser = async (req, res) => {
         });
 
     } catch (error) {
-
         return res.status(500).json({
             success: false,
             errorCode: "SERVER_001",
             message: error.message
         });
-
     }
 };
-// Login User
-export const Login = async (req, res) => {
 
+// 3. Resend OTP API
+export const ResendOTP = async (req, res) => {
     try {
+        const { email } = req.body;
 
-        const deviceId = req.headers["x-device-id"] || "DEVICEID124"
-        const deviceType = req.headers["x-platform"] || "android"
-        const appVersion = req.headers["x-app-version"];
+        if (!email) {
+            return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email is required" });
+        }
 
-        const { email, password, } = req.body;
+        const record = registrationStore.get(email);
+
+        if (!record) {
+            return res.status(200).json({ success: false, errorCode: "OTP_003", message: "No pending registration found for this email" });
+        }
+
+        const now = Date.now();
+        
+        if (now - record.firstResendAt > 10 * 60 * 1000) {
+            record.resendCount = 0;
+            record.firstResendAt = now;
+        }
+
+        if (record.resendCount >= 3) {
+            return res.status(200).json({ success: false, errorCode: "OTP_004", message: "Maximum resend attempts reached. Please try again after 10 minutes." });
+        }
+
+        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        record.otp = newOtp;
+        record.expiresAt = now + 5 * 60 * 1000;
+        record.resendCount += 1;
+
+        const textMsg = `Your new OTP for registration is: ${newOtp}. It is valid for 5 minutes.`;
+
+        try {
+            await sendOTPEmail(email, newOtp, 'Your Resend Registration OTP', textMsg);
+            await sendOTPSms(record.userDetails.phone, record.userDetails.countryCode, newOtp, textMsg);
+        } catch (err) {
+            console.error("Failed to resend OTP:", err.message);
+            return res.status(200).json({ success: false, errorCode: "EMAIL_001", message: `Failed to resend OTP: ${err.message}` });
+        }
+
+        return res.status(200).json({ success: true, message: "OTP resent successfully" });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+    }
+};
+
+// 4. Login User
+export const Login = async (req, res) => {
+    try {
+        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
+        const { email, password } = req.body;
 
         const user = await User.findOne({ email }).select("+password");
 
@@ -280,6 +324,14 @@ export const Login = async (req, res) => {
                 success: false,
                 errorCode: "USER_002",
                 message: "Invalid credentials"
+            });
+        }
+
+        if (!user.isVerified) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "AUTH_004",
+                message: "Account is not verified. Please complete verification."
             });
         }
 
@@ -296,7 +348,6 @@ export const Login = async (req, res) => {
         const accessToken = generateAccessToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
 
-        // Update device session last login
         await deviceSchema.findOneAndUpdate(
             { "device.deviceId": deviceId },
             {
@@ -309,31 +360,93 @@ export const Login = async (req, res) => {
         res.status(200).json({
             success: true,
             data: {
-                accessToken: accessToken,
-                refreshToken: refreshToken
+                accessToken,
+                refreshToken
             },
             message: "Login successful"
         });
 
     } catch (error) {
-
         res.status(500).json({
             success: false,
             errorCode: "SERVER_001",
             message: error.message
         });
-
     }
 };
-// Logout User
+
+// 5. Forgot Password Flow
+
+export const ForgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email is required" });
+
+        const user = await User.findOne({ email });
+        if (!user) return res.status(200).json({ success: false, errorCode: "USER_003", message: "User not found" });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+
+        forgotPasswordStore.set(email, { otp, expiresAt, verified: false });
+
+        const textMsg = `Your OTP to reset password is: ${otp}. It is valid for 5 minutes.`;
+
+        await sendOTPEmail(email, otp, 'Password Reset OTP', textMsg);
+        await sendOTPSms(user.phone, user.countryCode, otp, textMsg);
+
+        return res.status(200).json({ success: true, message: "Password reset OTP sent successfully" });
+    } catch (error) {
+        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+    }
+};
+
+export const VerifyForgotOTP = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        if (!email || !otp) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email and OTP are required" });
+
+        const record = forgotPasswordStore.get(email);
+        if (!record) return res.status(200).json({ success: false, errorCode: "OTP_003", message: "No password reset request found" });
+
+        if (Date.now() > record.expiresAt) {
+            forgotPasswordStore.delete(email);
+            return res.status(200).json({ success: false, errorCode: "OTP_001", message: "OTP has expired" });
+        }
+
+        if (record.otp !== String(otp)) {
+            return res.status(200).json({ success: false, errorCode: "OTP_001", message: "Invalid OTP" });
+        }
+
+        record.verified = true;
+
+        return res.status(200).json({ success: true, message: "OTP verified successfully. You can now reset your password." });
+    } catch (error) {
+        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+    }
+};
+
+export const ResetPassword = async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        if (!email || !newPassword) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email and new password are required" });
+
+        const record = forgotPasswordStore.get(email);
+        if (!record || !record.verified) {
+            return res.status(200).json({ success: false, errorCode: "AUTH_005", message: "Unauthorized. Please verify OTP first." });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await User.findOneAndUpdate({ email }, { password: hashedPassword });
+
+        forgotPasswordStore.delete(email);
+
+        return res.status(200).json({ success: true, message: "Password reset successfully" });
+    } catch (error) {
+        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+    }
+};
+
 export const Logout = async (req, res) => {
-
-    // res.clearCookie("accessToken");
-    // res.clearCookie("refreshToken");
-    // res.clearCookie("deviceId");
-
-    res.json({
-        success: true,
-        message: "Logged out successfully"
-    });
+    res.json({ success: true, message: "Logged out successfully" });
 };
