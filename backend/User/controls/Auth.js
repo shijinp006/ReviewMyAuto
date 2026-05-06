@@ -2,9 +2,9 @@ import User from "../models/userSchema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import deviceSchema from "../models/deviceSchema.js";
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
 import twilio from "twilio";
-import dns from "dns";
+// import dns from "dns";
 import { Resend } from "resend";
 // dns.setDefaultResultOrder("ipv4first");
 
@@ -34,12 +34,12 @@ const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
 // --- EMAIL / SMS HELPERS (Commented out — using demo OTP mode) ---
-const resend = new Resend("re_hh46a3fM_N1ppDv1UmWjEKp3wheXHJpTZ");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTPEmail = async (email, otp) => {
     try {
         const response = await resend.emails.send({
-            from: "shijinp9404@gmail.com",
+            from:`Review My Auto <${process.env.EMAIL_SERVICE}>`,
             to: email,
             subject: "Your OTP Code",
             html: `<h2>Your OTP is: ${otp}</h2>`
