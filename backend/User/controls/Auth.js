@@ -42,7 +42,7 @@ const sendOTPEmail = async (email, otp) => {
 
         const response = await resend.emails.send({
             from: `Review My Auto <${process.env.EMAIL_SERVICE}>`,
-            to: email,
+            to: process.env.EMAIL, // For testing with Resend's inbox. Change to 'email' in production.
             subject: "Your OTP Code",
             html: `<h2>Your OTP is: ${otp}</h2>`
         });
@@ -146,7 +146,8 @@ export const RegisterUser = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "OTP sent successfully to your email"
+            message: "OTP sent successfully to your email",
+            otp : otp // Demo OTP — remove this in production
         });
 
     } catch (error) {
