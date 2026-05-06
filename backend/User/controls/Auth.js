@@ -5,9 +5,6 @@ import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
 import dns from "dns";
-import { promisify } from "util";
-
-const resolve4 = promisify(dns.resolve4);
 
 let twilioClient = null;
 
@@ -34,24 +31,27 @@ const generateRefreshToken = (id) => {
 const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
-// Helper to send email — resolves smtp.gmail.com to IPv4 manually to avoid IPv6
+// Helper to send email — forces IPv4 via custom DNS lookup + uses SSL port 465
 const sendOTPEmail = async (email, otp, subject, text) => {
     if (!email) return;
 
-    // Manually resolve to IPv4 address to completely bypass IPv6
-    const addresses = await resolve4('smtp.gmail.com');
-    const ipv4Host = addresses[0];
-
     const transporter = nodemailer.createTransport({
-        host: ipv4Host,
-        port: 587,
-        secure: false,
-        tls: {
-            servername: 'smtp.gmail.com' // Required for TLS cert validation when connecting by IP
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // SSL on port 465
+        // Force IPv4 at the socket level via custom DNS lookup
+        dnsLookup: (hostname, options, callback) => {
+            dns.resolve4(hostname, (err, addresses) => {
+                if (err) return callback(err);
+                callback(null, addresses[0], 4);
+            });
         },
+        connectionTimeout: 15000,  // 15 seconds to connect
+        greetingTimeout: 15000,    // 15 seconds for SMTP greeting
+        socketTimeout: 30000,      // 30 seconds for socket inactivity
         auth: {
             user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
-            pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
+            pass: process.env.EMAIL_PASS || "zxpbfpwrmvacqior"
         }
     });
     await transporter.sendMail({
