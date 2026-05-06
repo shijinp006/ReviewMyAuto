@@ -37,8 +37,8 @@ const sendOTPEmail = async (email, otp, subject, text) => {
     const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
-        secure: false, 
-        family: 4, 
+        secure: false,
+        family: 4,
         auth: {
             user: process.env.EMAIL_USER || "shijinp9404@gmail.com",
             pass: process.env.EMAIL_PASS || "zxpb fpwr mvac qior"
@@ -53,24 +53,24 @@ const sendOTPEmail = async (email, otp, subject, text) => {
 };
 
 // Helper to send SMS
-const sendOTPSms = async (phone, countryCode, otp, text) => {
-    if (!phone || !countryCode) return;
-    if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-        twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    }
-    if (twilioClient && process.env.TWILIO_PHONE_NUMBER) {
-        try {
-            const formattedPhone = countryCode.startsWith('+') ? `${countryCode}${phone}` : `+${countryCode}${phone}`;
-            await twilioClient.messages.create({
-                body: text,
-                from: process.env.TWILIO_PHONE_NUMBER,
-                to: formattedPhone
-            });
-        } catch (err) {
-            console.error("Failed to send SMS", err);
-        }
-    }
-};
+// const sendOTPSms = async (phone, countryCode, otp, text) => {
+//     if (!phone || !countryCode) return;
+//     if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+//         twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+//     }
+//     if (twilioClient && process.env.TWILIO_PHONE_NUMBER) {
+//         try {
+//             const formattedPhone = countryCode.startsWith('+') ? `${countryCode}${phone}` : `+${countryCode}${phone}`;
+//             await twilioClient.messages.create({
+//                 body: text,
+//                 from: process.env.TWILIO_PHONE_NUMBER,
+//                 to: formattedPhone
+//             });
+//         } catch (err) {
+//             console.error("Failed to send SMS", err);
+//         }
+//     }
+// };
 
 // 1. Register API
 export const RegisterUser = async (req, res) => {
@@ -128,7 +128,7 @@ export const RegisterUser = async (req, res) => {
 
         try {
             await sendOTPEmail(email, otp, 'Your Registration OTP', textMsg);
-            await sendOTPSms(phone, countryCode, otp, textMsg);
+            // await sendOTPSms(phone, countryCode, otp, textMsg);
         } catch (err) {
             console.error("Failed to send OTP:", err.message);
             return res.status(200).json({
@@ -279,7 +279,7 @@ export const ResendOTP = async (req, res) => {
         }
 
         const now = Date.now();
-        
+
         if (now - record.firstResendAt > 10 * 60 * 1000) {
             record.resendCount = 0;
             record.firstResendAt = now;
@@ -298,7 +298,7 @@ export const ResendOTP = async (req, res) => {
 
         try {
             await sendOTPEmail(email, newOtp, 'Your Resend Registration OTP', textMsg);
-            await sendOTPSms(record.userDetails.phone, record.userDetails.countryCode, newOtp, textMsg);
+            // await sendOTPSms(record.userDetails.phone, record.userDetails.countryCode, newOtp, textMsg);
         } catch (err) {
             console.error("Failed to resend OTP:", err.message);
             return res.status(200).json({ success: false, errorCode: "EMAIL_001", message: `Failed to resend OTP: ${err.message}` });
@@ -393,7 +393,7 @@ export const ForgotPassword = async (req, res) => {
         const textMsg = `Your OTP to reset password is: ${otp}. It is valid for 5 minutes.`;
 
         await sendOTPEmail(email, otp, 'Password Reset OTP', textMsg);
-        await sendOTPSms(user.phone, user.countryCode, otp, textMsg);
+        // await sendOTPSms(user.phone, user.countryCode, otp, textMsg);
 
         return res.status(200).json({ success: true, message: "Password reset OTP sent successfully" });
     } catch (error) {
