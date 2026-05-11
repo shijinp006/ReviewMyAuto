@@ -113,7 +113,7 @@ export const GetVehicleReviews = async (req, res) => {
             success: true,
             count: reviews.length,
             data: reviews,
-            comment : reviews.comment
+            
         });
 
     } catch (error) {

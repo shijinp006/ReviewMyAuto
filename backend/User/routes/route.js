@@ -32,6 +32,6 @@ router.post("/add-vehicle", AddVehicle);
 router.get("/my-vehicles", GetMyVehicles);
 
 // Admin/Dashboard Stats
-router.get("/all-stats", verifyToken, getAllStats);
+router.get("/all-stats", getAllStats);
 
 export default router
