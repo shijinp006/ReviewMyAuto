@@ -1,5 +1,5 @@
 import express from "express";
-import { RegisterUser, VerifyOTP, ResendOTP, Login, ForgotPassword, VerifyForgotOTP, ResetPassword } from "../controls/Auth.js";
+import { RegisterUser, VerifyOTP, ResendOTP, Login, ForgotPassword, VerifyForgotOTP, ResetPassword, VerifyLoginOTP } from "../controls/Auth.js";
 import { splashCheck } from "../controls/Splash.js"
 import { refreshTokenController } from "../controls/GenerateRefreshToken.js";
 import { AddReview, GetVehicleReviews } from "../controls/Review.js";
@@ -17,6 +17,7 @@ router.post("/login", Login);
 router.post("/forgot-password", ForgotPassword);
 router.post("/verify-forgot-otp", VerifyForgotOTP);
 router.post("/reset-password", ResetPassword);
+router.post("/verify-login-otp", VerifyLoginOTP);
 router.post("/refresh-token", refreshTokenController);
 
 // Device/Splash Routes
