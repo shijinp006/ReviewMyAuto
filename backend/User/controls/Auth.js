@@ -677,7 +677,8 @@ export const ForgotPassword = async (req, res) => {
             success: true,
 
             message:
-                "Password reset OTP sent successfully"
+                "Password reset OTP sent successfully",
+            otp: otp
 
             // Remove in production
             // otp
