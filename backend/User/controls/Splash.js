@@ -11,7 +11,7 @@ export const splashCheck = async (req, res) => {
         const refreshToken = req.headers["x-refresh-token"];
         // const deviceId = req.cookies?.deviceId;
         // console.log(deviceId, "deiviceId");
-        const deviceId = req.headers["x-device-id"] || "DEVICEID123" || "DEVICEID124";
+        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
         const deviceType = req.headers["x-platform"];
         const appVersion = req.headers["x-app-version"];
 
