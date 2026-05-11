@@ -11,7 +11,7 @@ export const AddReview = async (req, res) => {
         const { rating, comment, images } = req.body;
 
         // Extracting IDs from headers as requested
-        const userId = req.headers["x-user-id"] || "6a01a1789be3d353d893d05"; // Default for testing
+        const userId = req.headers["x-user-id"] || "6a01a1789be3d353d893d05c"; // Default for testing
         const vehicleId = req.headers["x-vehicle-id"] || "6a01ac05824d84ce29fbb089"; // Default for testing
 
         if (!userId) {
