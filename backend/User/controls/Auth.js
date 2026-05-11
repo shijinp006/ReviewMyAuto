@@ -599,7 +599,7 @@ export const VerifyLoginOTP = async (req, res) => {
             data: {
 
                 accessToken,
-                refreshToken,
+
                 appVersion,
                 deviceType
             },
