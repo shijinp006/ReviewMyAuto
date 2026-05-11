@@ -167,7 +167,7 @@ export const VerifyOTP = async (req, res) => {
 
     try {
 
-        const { email, otp } = req.body;
+        const { otp } = req.body;
 
         // Device Headers
         const deviceId =
@@ -189,21 +189,25 @@ export const VerifyOTP = async (req, res) => {
             req.headers["x-app-version"];
 
         // Validation
-        if (!email || !otp) {
+        if (!otp) {
 
             return res.status(200).json({
+
                 success: false,
                 errorCode: "VALID_001",
-                message: "Email and OTP are required"
+                message: "OTP is required"
             });
         }
 
         // Find OTP
-        const otpRecord = await OTP.findOne({ email });
+        const otpRecord = await OTP.findOne({
+            otp: String(otp)
+        });
 
         if (!otpRecord) {
 
             return res.status(200).json({
+
                 success: false,
                 errorCode: "OTP_002",
                 message: "OTP not found"
@@ -211,70 +215,112 @@ export const VerifyOTP = async (req, res) => {
         }
 
         // Check Expiry
-        if (Date.now() > otpRecord.expiresAt) {
+        if (
+            Date.now() > otpRecord.expiresAt
+        ) {
 
-            await OTP.deleteOne({ email });
+            await OTP.deleteOne({
+                _id: otpRecord._id
+            });
 
             return res.status(200).json({
+
                 success: false,
                 errorCode: "OTP_001",
                 message: "OTP expired"
             });
         }
 
-        // Check OTP
-        if (otpRecord.otp !== String(otp)) {
+        // Find & Verify User
+        const user = await User.findOneAndUpdate(
+
+            {
+                email: otpRecord.email
+            },
+
+            {
+                isVerified: true
+            },
+
+            {
+                new: true
+            }
+        );
+
+        if (!user) {
 
             return res.status(200).json({
+
                 success: false,
-                errorCode: "OTP_001",
-                message: "Invalid OTP"
+                errorCode: "USER_003",
+                message: "User not found"
             });
         }
 
-        // Verify User
-        const user = await User.findOneAndUpdate(
-            { email },
-            { isVerified: true },
-            { new: true }
-        );
-
         // Save Device
-        await deviceSchema.create({
+        await deviceSchema.findOneAndUpdate(
 
-            device: {
-                deviceId,
-                deviceType,
-                deviceName,
-                deviceCategory,
-                location,
-                lastLogin: new Date()
+            {
+                "device.deviceId": deviceId
             },
 
-            userIds: [user._id]
-        });
+            {
+                $set: {
+
+                    "device.deviceId":
+                        deviceId,
+
+                    "device.deviceType":
+                        deviceType,
+
+                    "device.deviceName":
+                        deviceName,
+
+                    "device.deviceCategory":
+                        deviceCategory,
+
+                    "device.location":
+                        location,
+
+                    "device.lastLogin":
+                        new Date()
+                },
+
+                $addToSet: {
+                    userIds: user._id
+                }
+            },
+
+            {
+                upsert: true,
+                new: true
+            }
+        );
 
         // Delete OTP
-        await OTP.deleteOne({ email });
+        await OTP.deleteOne({
+            _id: otpRecord._id
+        });
 
-        // Generate Tokens
+        // Generate Token
         const accessToken =
-            generateAccessToken(user._id);
-
-        // const refreshToken =
-        //     generateRefreshToken(user._id);
+            generateAccessToken(
+                user._id,
+                deviceId
+            );
 
         return res.status(200).json({
 
             success: true,
 
             data: {
+
                 accessToken,
-                // refreshToken,
                 appVersion
             },
 
-            message: "Account verified successfully"
+            message:
+                "Account verified successfully"
         });
 
     } catch (error) {
