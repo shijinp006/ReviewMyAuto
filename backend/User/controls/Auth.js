@@ -149,7 +149,8 @@ export const RegisterUser = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message: "OTP sent successfully"
+            message: "OTP sent successfully",
+            otp : otp // Demo OTP — remove this in production
         });
 
     } catch (error) {
@@ -507,11 +508,6 @@ export const VerifyLoginOTP = async (req, res) => {
                 deviceId
             );
 
-        const refreshToken =
-            generateRefreshToken(
-                user._id,
-                deviceId
-            );
 
         // Save Device Session
         await deviceSchema.findOneAndUpdate(
