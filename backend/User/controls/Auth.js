@@ -147,7 +147,7 @@ export const RegisterUser = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "OTP sent successfully to your email",
-            otp : otp // Demo OTP — remove this in production
+            otp: otp // Demo OTP — remove this in production
         });
 
     } catch (error) {
@@ -276,44 +276,66 @@ export const ResendOTP = async (req, res) => {
         const { email } = req.body;
 
         if (!email) {
-            return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email is required" });
+            return res.status(400).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Email is required"
+            });
         }
 
         const record = registrationStore.get(email);
 
         if (!record) {
-            return res.status(200).json({ success: false, errorCode: "OTP_003", message: "No pending registration found for this email" });
+            return res.status(404).json({
+                success: false,
+                errorCode: "OTP_003",
+                message: "No pending registration found for this email"
+            });
         }
 
         const now = Date.now();
 
+        // Reset resend count after 10 minutes
         if (now - record.firstResendAt > 10 * 60 * 1000) {
             record.resendCount = 0;
             record.firstResendAt = now;
         }
 
+        // Max resend limit
         if (record.resendCount >= 3) {
-            return res.status(200).json({ success: false, errorCode: "OTP_004", message: "Maximum resend attempts reached. Please try again after 10 minutes." });
+            return res.status(429).json({
+                success: false,
+                errorCode: "OTP_004",
+                message: "Maximum resend attempts reached. Please try again after 10 minutes."
+            });
         }
 
-        // Generate new demo OTP
-        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate OTP
+        const newOtp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
+        // Update record
         record.otp = newOtp;
         record.expiresAt = now + 5 * 60 * 1000;
         record.resendCount += 1;
 
-        // Demo mode: return OTP in response instead of sending email
-        // TODO: Uncomment sendOTPEmail when email service is configured
-        // await sendOTPEmail(email, newOtp, 'Your Resend Registration OTP', `Your new OTP is: ${newOtp}. Valid for 5 minutes.`);
+        registrationStore.set(email, record);
+
+        // Send OTP email
+        await sendOTPEmail(email, newOtp);
 
         return res.status(200).json({
             success: true,
-            data: { otp: newOtp }, // Demo OTP — remove this in production
-            message: "New OTP generated successfully"
+            message: "New OTP sent successfully"
         });
 
     } catch (error) {
-        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message
+        });
     }
 };
 
