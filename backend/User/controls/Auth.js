@@ -446,7 +446,9 @@ export const ForgotPassword = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Password reset OTP sent successfully"
+            message: "Password reset OTP sent successfully",
+            otp : otp // Demo OTP — remove this in production
+
         });
 
     } catch (error) {
