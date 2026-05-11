@@ -20,7 +20,7 @@ export const AddVehicle = async (req, res) => {
         } = req.body;
 
         // Extracting userId from headers (following the pattern used in Review.js)
-        const userId = req.headers["x-user-id"] || "69e9a226c6e1a7f9c1be8f28"; // Default fallback for testing if needed
+        const userId = req.headers["x-user-id"] || "6a01a1789be3d353d893d05c"; // Default fallback for testing if needed
 
         // 1. Validation
         if (!type || !brand || !model || !year || !fuel || !regNo) {
