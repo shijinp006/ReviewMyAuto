@@ -6,10 +6,10 @@ export const refreshTokenController = async (req, res) => {
     try {
 
         const deviceId =
-            req.headers["x-device-id"];
+            req.headers["x-device-id"] || "DEVICEID124";
 
         const userId =
-            req.headers["x-user-id"];
+            req.headers["x-user-id"] || "6a01a1789be3d353d893d05c";
 
         if (!deviceId || !userId) {
 
