@@ -150,7 +150,7 @@ export const RegisterUser = async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "OTP sent successfully",
-            otp : otp // Demo OTP — remove this in production
+            otp: otp // Demo OTP — remove this in production
         });
 
     } catch (error) {
@@ -459,7 +459,8 @@ export const Login = async (req, res) => {
             success: true,
 
             message:
-                "Login OTP sent successfully"
+                "Login OTP sent successfully",
+            otp: otp
         });
 
     } catch (error) {
