@@ -328,7 +328,7 @@ export const ResendOTP = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: `New OTP sent successfully`,
-            otp : newOtp 
+            otp: newOtp
         });
 
     } catch (error) {
@@ -405,57 +405,117 @@ export const Login = async (req, res) => {
 };
 
 // 5. Forgot Password Flow — generates demo OTP and returns it
-
 export const ForgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email is required" });
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Email is required"
+            });
+        }
 
         const user = await User.findOne({ email });
-        if (!user) return res.status(200).json({ success: false, errorCode: "USER_003", message: "User not found" });
 
-        // Generate demo OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                errorCode: "USER_003",
+                message: "User not found"
+            });
+        }
+
+        // Generate OTP
+        const otp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
         const expiresAt = Date.now() + 5 * 60 * 1000;
 
-        forgotPasswordStore.set(email, { otp, expiresAt, verified: false });
+        // Store OTP
+        forgotPasswordStore.set(email, {
+            otp,
+            expiresAt,
+            verified: false
+        });
 
-        // Demo mode: return OTP in response instead of sending email
-        // TODO: Uncomment sendOTPEmail when email service is configured
-        // await sendOTPEmail(email, otp, 'Password Reset OTP', `Your OTP to reset password is: ${otp}. Valid for 5 minutes.`);
+        // Send OTP Email
+        await sendOTPEmail(email, otp);
 
         return res.status(200).json({
             success: true,
-            data: { otp }, // Demo OTP — remove this in production
-            message: "Password reset OTP generated successfully"
+            message: "Password reset OTP sent successfully"
         });
+
     } catch (error) {
-        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message
+        });
     }
 };
 
 export const VerifyForgotOTP = async (req, res) => {
     try {
-        const { email, otp } = req.body;
-        if (!email || !otp) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email and OTP are required" });
+        const { otp } = req.body;
 
-        const record = forgotPasswordStore.get(email);
-        if (!record) return res.status(200).json({ success: false, errorCode: "OTP_003", message: "No password reset request found" });
+        if (!otp) {
+            return res.status(400).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "OTP is required"
+            });
+        }
 
+        // Get first OTP record
+        const record = forgotPasswordStore.values().next().value;
+
+        if (!record) {
+            return res.status(404).json({
+                success: false,
+                errorCode: "OTP_003",
+                message: "No OTP found"
+            });
+        }
+
+        // Check expiry
         if (Date.now() > record.expiresAt) {
-            forgotPasswordStore.delete(email);
-            return res.status(200).json({ success: false, errorCode: "OTP_001", message: "OTP has expired" });
+
+            return res.status(400).json({
+                success: false,
+                errorCode: "OTP_001",
+                message: "OTP has expired"
+            });
         }
 
+        // Check OTP
         if (record.otp !== String(otp)) {
-            return res.status(200).json({ success: false, errorCode: "OTP_001", message: "Invalid OTP" });
+
+            return res.status(400).json({
+                success: false,
+                errorCode: "OTP_002",
+                message: "Invalid OTP"
+            });
         }
 
+        // Mark verified
         record.verified = true;
 
-        return res.status(200).json({ success: true, message: "OTP verified successfully. You can now reset your password." });
+        return res.status(200).json({
+            success: true,
+            message:
+                "OTP verified successfully. You can now reset your password."
+        });
+
     } catch (error) {
-        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message
+        });
     }
 };
 
