@@ -112,7 +112,8 @@ export const GetVehicleReviews = async (req, res) => {
         return res.status(200).json({
             success: true,
             count: reviews.length,
-            data: reviews
+            data: reviews,
+            comment : reviews.comment
         });
 
     } catch (error) {
