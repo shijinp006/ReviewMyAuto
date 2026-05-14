@@ -103,7 +103,7 @@ export const AddReview = async (req, res) => {
  */
 export const GetVehicleReviews = async (req, res) => {
     try {
-        const { vehicleId } =  req.headers["x-vehicle-id"] || "6a01b1753bf150689b306da5"; // Default for testing
+        const { vehicleId } = req.params ;
 
         const reviews = await Review.find({ vehicleId, status: "approved" })
             .populate("userId", "userName profIcon rank")
