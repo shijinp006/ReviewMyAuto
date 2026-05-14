@@ -103,11 +103,7 @@ export const GetVehicleReviews = async (req, res) => {
 
         const { vehicleId } = req.params;
 
-        res.status(200).json({
-            success: true,
-           id : vehicleId
-        });
-
+  
         // Validate vehicleId
         if (!vehicleId) {
             return res.status(400).json({
