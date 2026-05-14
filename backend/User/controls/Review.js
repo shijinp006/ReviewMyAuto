@@ -105,7 +105,7 @@ export const GetVehicleReviews = async (req, res) => {
 
         res.status(200).json({
             success: true,
-           id = vehicleId
+           id : vehicleId
         });
 
         // Validate vehicleId
