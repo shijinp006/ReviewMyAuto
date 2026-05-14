@@ -1,6 +1,6 @@
 import Review from "../models/reviewSchema.js";
 import Vehicle from "../models/vehicleSchema.js";
-
+import mongoose from "mongoose";
 /**
  * @desc    Add a new review for a vehicle
  * @route   POST /api/user/reviews/add
