@@ -96,31 +96,56 @@ export const AddReview = async (req, res) => {
     }
 };
 
-/**
- * @desc    Get all reviews for a specific vehicle
- * @route   GET /api/user/reviews/:vehicleId
- * @access  Public
- */
+
+
 export const GetVehicleReviews = async (req, res) => {
     try {
-        const { vehicleId } = req.params ;
 
-        const reviews = await Review.find({ vehicleId, status: "approved" })
+        const { vehicleId } = req.params;
+
+        res.status(200).json({
+            success: true,
+           id = vehicleId
+        });
+
+        // Validate vehicleId
+        if (!vehicleId) {
+            return res.status(400).json({
+                success: false,
+                errorCode: "VALIDATION_001",
+                message: "Vehicle ID is required"
+            });
+        }
+
+        // Check valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(vehicleId)) {
+            return res.status(400).json({
+                success: false,
+                errorCode: "VALIDATION_002",
+                message: "Invalid Vehicle ID"
+            });
+        }
+
+        const reviews = await Review.find({
+            vehicleId,
+            status: "approved"
+        })
             .populate("userId", "userName profIcon rank")
             .sort({ createdAt: -1 });
 
         return res.status(200).json({
             success: true,
             count: reviews.length,
-            data: reviews,
-            
+            data: reviews
         });
 
     } catch (error) {
+
         return res.status(500).json({
             success: false,
             errorCode: "SERVER_001",
             message: error.message
         });
+
     }
 };
