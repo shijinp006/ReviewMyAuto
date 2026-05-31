@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import User from "../models/userSchema.js";
 import Vehicle from "../models/vehicleSchema.js";
 import DeviceSession from "../models/deviceSchema.js";
@@ -11,8 +10,9 @@ import Review from "../models/reviewSchema.js";
  */
 export const getAllStats = async (req, res) => {
     try {
-        const userId = "6a01a1789be3d353d893d05c"; // Default for testing req.userId ||
-        const userObjectId = new mongoose.Types.ObjectId(userId);
+        const userId = req.user.id;
+
+
 
         // 1. Fetch data filtered to logged-in user only
         const [
@@ -25,7 +25,7 @@ export const getAllStats = async (req, res) => {
             Vehicle.find({ userId }).sort({ createdAt: -1 }).populate("userId", "userName"),
             DeviceSession.find({ userIds: userId }).sort({ createdAt: -1 }),
             Review.aggregate([
-                { $match: { userId: userObjectId } },
+                { $match: { userId: userId } },
                 {
                     $group: {
                         _id: "$status",

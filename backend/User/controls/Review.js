@@ -64,7 +64,7 @@ export const AddReview = async (req, res) => {
         const review = await Review.create({
             userId,
             vehicleId,
-            rating,
+            rating, 
             comment,
             images: images || [],
             status: "pending" // Default status is pending for moderation
