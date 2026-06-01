@@ -4,9 +4,8 @@ import bcrypt from "bcryptjs";
 import deviceSchema from "../models/deviceSchema.js";
 import nodemailer from "nodemailer";
 import twilio from "twilio";
-const nodemailer = require("nodemailer");
-const dns = require("dns");
-
+import nodemailer from "nodemailer";
+import dns from "dns";
 let twilioClient = null;
 
 // Email regex validation
