@@ -2,7 +2,6 @@ import User from "../models/userSchema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import deviceSchema from "../models/deviceSchema.js";
-import nodemailer from "nodemailer";
 import twilio from "twilio";
 import nodemailer from "nodemailer";
 import dns from "dns";
