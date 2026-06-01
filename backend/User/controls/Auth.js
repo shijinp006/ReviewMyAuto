@@ -170,7 +170,7 @@ export const RegisterUser = async (req, res) => {
 // 2. Verify OTP API
 export const VerifyOTP = async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        const { otp } = req.body;
 
         const deviceId = req.headers["x-device-id"] || "DEVICEID124";
         const deviceType = req.headers["x-platform"] || "android";
@@ -179,7 +179,7 @@ export const VerifyOTP = async (req, res) => {
         const location = req.headers["x-location"];
         const appVersion = req.headers["x-app-version"];
 
-        if (!email || !otp) {
+        if (!otp) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
