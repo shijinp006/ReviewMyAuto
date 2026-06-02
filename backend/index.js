@@ -4,7 +4,7 @@ import bodyParser from "body-parser"
 import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
 import mongoose from "mongoose"
-
+import session from "express-session";
 
 
 
@@ -44,6 +44,16 @@ app.use(
     })
 )
 
+app.use(
+    session({
+        secret: "my-secret-key",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            maxAge: 5 * 60 * 1000
+        }
+    })
+);
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
