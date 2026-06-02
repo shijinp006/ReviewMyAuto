@@ -343,11 +343,11 @@ export const Login = async (req, res) => {
 
         await sendOTPEmail(email, emailOtp);
 
-        await sendOTPSms(
-            user.phone,
-            user.countryCode,
-            mobileOtp
-        );
+        // await sendOTPSms(
+        //     user.phone,
+        //     user.countryCode,
+        //     mobileOtp
+        // );
 
         return res.status(200).json({
             success: true,
