@@ -30,23 +30,25 @@ const generateRefreshToken = (id) => {
 const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
-export const sendOTPEmail = async (
-    email,
-    otp
-) => {
-    const transporter =
-        nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
+export const sendOTPEmail = async (email, otp) => {
 
-    await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+    const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        },
+        lookup: (hostname, options, callback) => {
+            dns.lookup(hostname, { family: 4 }, callback);
+        }
+    });
+
+    await transporter.verify();
+
+    const info = await transporter.sendMail({
+        from: `"OTP Service" <${process.env.EMAIL_USER}>`,
         to: email,
         subject: "Registration OTP",
         html: `
@@ -56,6 +58,8 @@ export const sendOTPEmail = async (
             <p>Valid for 5 minutes.</p>
         `
     });
+
+    console.log("Email sent:", info.messageId);
 };
 
 // Helper to send SMS
