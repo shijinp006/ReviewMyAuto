@@ -31,7 +31,7 @@ const generateRefreshToken = (id) => {
 const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
-const resend = new Resend(process.env.RESEND_API_KEY ||"re_G4HHzLGJ_dnH1D1mae7FDtkZGYDLEEba8");
+const resend = new Resend(process.env.RESEND_API_KEY );
 
 export const sendOTPEmail = async (email, otp) => {
     const { data, error } = await resend.emails.send({
