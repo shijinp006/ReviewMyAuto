@@ -29,9 +29,10 @@ const generateRefreshToken = (id) => {
 
 // Stores
 const registrationStore = new Map();
+const loginOtpStore = new Map()
 const forgotPasswordStore = new Map();
 
-const resend = new Resend(process.env.RESEND_API_KEY );
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendOTPEmail = async (email, otp) => {
     const { data, error } = await resend.emails.send({
@@ -272,14 +273,14 @@ export const VerifyRegistrationOTP = async (req, res) => {
         const accessToken =
             generateAccessToken(user._id);
 
-     
+
 
         return res.status(201).json({
             success: true,
             data: {
                 userId: user._id,
                 accessToken
-            
+
             },
             message:
                 "Registration completed successfully"
@@ -331,7 +332,7 @@ export const Login = async (req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
-        loginOtpStore.set(email, {
+        re.set(email, {
             userId: user._id,
             emailOtp,
             mobileOtp,
@@ -448,7 +449,7 @@ export const VerifyLoginOTP = async (req, res) => {
                 user._id
             );
 
-       
+
 
         loginOtpStore.delete(email);
 
@@ -458,7 +459,7 @@ export const VerifyLoginOTP = async (req, res) => {
             success: true,
             data: {
                 accessToken
-             
+
             },
             message:
                 "Login successful"
