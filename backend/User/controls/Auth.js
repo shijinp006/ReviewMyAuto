@@ -30,41 +30,32 @@ const generateRefreshToken = (id) => {
 const registrationStore = new Map();
 const forgotPasswordStore = new Map();
 
-const sendOTPEmail = async (email, otp) => {
-    if (!email) throw new Error("Email is required");
+export const sendOTPEmail = async (
+    email,
+    otp
+) => {
+    const transporter =
+        nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
 
-    const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // STARTTLS
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        },
-        lookup: (hostname, options, callback) => {
-            dns.lookup(hostname, { family: 4 }, callback);
-        }
-    });
-
-    // Optional but VERY useful
-    await transporter.verify();
-
-    const mailOptions = {
-        from: `"OTP Service" <${process.env.EMAIL_USER}>`,
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
         to: email,
-        subject: "Your OTP Code",
-        text: `Your OTP is: ${otp}. It will expire in 5 minutes.`,
+        subject: "Registration OTP",
         html: `
-            <h2>🔐 OTP Verification</h2>
+            <h2>OTP Verification</h2>
             <p>Your OTP is:</p>
             <h1>${otp}</h1>
-            <p>This OTP is valid for 5 minutes.</p>
+            <p>Valid for 5 minutes.</p>
         `
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("✅ Email sent:", info.messageId);
+    });
 };
 
 // Helper to send SMS
@@ -90,147 +81,156 @@ const sendOTPEmail = async (email, otp) => {
 // 1. Register API
 export const RegisterUser = async (req, res) => {
     try {
-        const { userName, fullName, email, countryCode, phone, password } = req.body;
+        const {
+            userName,
+            fullName,
+            email,
+            countryCode,
+            phone,
+            password
+        } = req.body;
 
-        if (!userName || !fullName || !email || !countryCode || !phone || !password) {
-            return res.status(200).json({
+        if (
+            !userName ||
+            !fullName ||
+            !email ||
+            !countryCode ||
+            !phone ||
+            !password
+        ) {
+            return res.status(400).json({
                 success: false,
-                errorCode: "VALID_001",
                 message: "All fields are required"
             });
         }
 
-        if (!emailRegex.test(email)) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "VALID_001",
-                message: "Invalid email address"
-            });
-        }
-
-        if (!phoneRegex.test(phone)) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "VALID_001",
-                message: "Invalid phone number"
-            });
-        }
-
         const existingUser = await User.findOne({
-            $or: [{ email }, { phone }, { userName }]
+            $or: [
+                { email },
+                { phone },
+                { userName }
+            ]
         });
 
         if (existingUser) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
-                errorCode: "USER_001",
                 message: "User already exists"
             });
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+        const otp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
+        const expiresAt =
+            Date.now() + 5 * 60 * 1000;
 
         registrationStore.set(email, {
-            userDetails: { userName, fullName, email, countryCode, phone, password },
+            userDetails: {
+                userName,
+                fullName,
+                email,
+                countryCode,
+                phone,
+                password
+            },
             otp,
-            expiresAt,
-            resendCount: 0,
-            firstResendAt: Date.now()
+            expiresAt
         });
 
-        const textMsg = `Your OTP for registration is: ${otp}. It is valid for 5 minutes.`;
+        req.session.registrationEmail = email;
 
-        try {
-            await sendOTPEmail(email, otp, 'Your Registration OTP', textMsg);
-            // await sendOTPSms(phone, countryCode, otp, textMsg);
-        } catch (err) {
-            console.error("Failed to send OTP:", err.message);
-            return res.status(200).json({
-                success: false,
-                errorCode: "EMAIL_001",
-                message: `Failed to send OTP: ${err.message}`
-            });
-        }
+        await sendOTPEmail(email, otp);
 
         return res.status(200).json({
             success: true,
-            message: "OTP sent successfully. Please verify to complete registration."
+            message: "OTP sent successfully"
         });
 
     } catch (error) {
         return res.status(500).json({
             success: false,
-            errorCode: "SERVER_001",
             message: error.message
         });
     }
 };
 
-// 2. Verify OTP API
-export const VerifyOTP = async (req, res) => {
+
+export const VerifyRegistrationOTP = async (req, res) => {
     try {
         const { otp } = req.body;
 
-        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
-        const deviceType = req.headers["x-platform"] || "android";
-        const deviceName = req.headers["x-device-name"];
-        const deviceCategory = req.headers["x-device-category"] || deviceType;
-        const location = req.headers["x-location"];
-        const appVersion = req.headers["x-app-version"];
+        const email = req.session.registrationEmail;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Registration session expired"
+            });
+        }
 
         if (!otp) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
-                errorCode: "VALID_001",
-                message: "Email and OTP are required"
+                message: "OTP is required"
             });
         }
 
         const record = registrationStore.get(email);
 
         if (!record) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
-                errorCode: "OTP_002",
-                message: "OTP session not found or expired. Please register again."
+                message: "OTP session not found"
             });
         }
 
         if (Date.now() > record.expiresAt) {
             registrationStore.delete(email);
-            return res.status(200).json({
+
+            return res.status(400).json({
                 success: false,
-                errorCode: "OTP_001",
-                message: "OTP has expired"
+                message: "OTP expired"
             });
         }
 
         if (record.otp !== String(otp)) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
-                errorCode: "OTP_001",
                 message: "Invalid OTP"
             });
         }
 
-        // OTP Valid. Create user.
-        const { userName, fullName, countryCode, phone, password } = record.userDetails;
+        const {
+            userName,
+            fullName,
+            countryCode,
+            phone,
+            password
+        } = record.userDetails;
 
         const existingUser = await User.findOne({
-            $or: [{ email }, { phone }, { userName }]
+            $or: [
+                { email },
+                { phone },
+                { userName }
+            ]
         });
 
         if (existingUser) {
             registrationStore.delete(email);
-            return res.status(200).json({
+
+            return res.status(400).json({
                 success: false,
-                errorCode: "USER_001",
                 message: "User already exists"
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(
+            password,
+            10
+        );
 
         const user = await User.create({
             userName,
@@ -241,6 +241,22 @@ export const VerifyOTP = async (req, res) => {
             password: hashedPassword,
             isVerified: true
         });
+
+        const deviceId =
+            req.headers["x-device-id"] || "DEVICEID124";
+
+        const deviceType =
+            req.headers["x-platform"] || "android";
+
+        const deviceName =
+            req.headers["x-device-name"];
+
+        const deviceCategory =
+            req.headers["x-device-category"] ||
+            deviceType;
+
+        const location =
+            req.headers["x-location"];
 
         await deviceSchema.create({
             device: {
@@ -256,25 +272,211 @@ export const VerifyOTP = async (req, res) => {
 
         registrationStore.delete(email);
 
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
+        delete req.session.registrationEmail;
+
+        const accessToken =
+            generateAccessToken(user._id);
+
+        const refreshToken =
+            generateRefreshToken(user._id);
 
         return res.status(201).json({
             success: true,
             data: {
+                userId: user._id,
                 accessToken,
-                refreshToken,
-                appVersion
+                refreshToken
             },
-            message: "User registered successfully"
+            message:
+                "Registration completed successfully"
         });
 
     } catch (error) {
         return res.status(500).json({
             success: false,
-            errorCode: "SERVER_001",
             message: error.message
         });
+    }
+};
+
+export const Login = async (req, res) => {
+    try {
+
+        const { email, password } = req.body;
+
+        const user = await User.findOne({ email })
+            .select("+password");
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials"
+            });
+        }
+
+        const match = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        if (!match) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials"
+            });
+        }
+
+        const emailOtp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
+        const mobileOtp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
+        loginOtpStore.set(email, {
+            userId: user._id,
+            emailOtp,
+            mobileOtp,
+            expiresAt: Date.now() + 5 * 60 * 1000
+        });
+
+        req.session.loginEmail = email;
+
+        await sendOTPEmail(email, emailOtp);
+
+        await sendOTPSms(
+            user.phone,
+            user.countryCode,
+            mobileOtp
+        );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "OTP sent to email and mobile"
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+// 2. Verify OTP API
+export const VerifyLoginOTP = async (req, res) => {
+    try {
+
+        const {
+            emailOtp,
+            mobileOtp
+        } = req.body;
+
+        const email =
+            req.session.loginEmail;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Session expired. Please login again."
+            });
+        }
+
+        const record =
+            loginOtpStore.get(email);
+
+        if (!record) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "OTP session not found"
+            });
+        }
+
+        if (
+            Date.now() >
+            record.expiresAt
+        ) {
+
+            loginOtpStore.delete(email);
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "OTP expired"
+            });
+        }
+
+        if (
+            record.emailOtp !==
+            String(emailOtp)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Invalid Email OTP"
+            });
+        }
+
+        if (
+            record.mobileOtp !==
+            String(mobileOtp)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Invalid Mobile OTP"
+            });
+        }
+
+        const user =
+            await User.findById(
+                record.userId
+            );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message:
+                    "User not found"
+            });
+        }
+
+        const accessToken =
+            generateAccessToken(
+                user._id
+            );
+
+        const refreshToken =
+            generateRefreshToken(
+                user._id
+            );
+
+        loginOtpStore.delete(email);
+
+        delete req.session.loginEmail;
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                accessToken,
+                refreshToken
+            },
+            message:
+                "Login successful"
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
 };
 
@@ -326,72 +528,7 @@ export const ResendOTP = async (req, res) => {
     }
 };
 
-// 4. Login User
-export const Login = async (req, res) => {
-    try {
-        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
-        // const { email, password } = req.body;
 
-        const email = "shijinp9404@gmail.com"
-        const password = "123456"
-
-        const user = await User.findOne({ email }).select("+password");
-
-        if (!user) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "USER_002",
-                message: "Invalid credentials"
-            });
-        }
-
-        if (!user.isVerified) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "AUTH_004",
-                message: "Account is not verified. Please complete verification."
-            });
-        }
-
-        const match = await bcrypt.compare(password, user.password);
-
-        if (!match) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "AUTH_003",
-                message: "Invalid credentials"
-            });
-        }
-
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-
-        await deviceSchema.findOneAndUpdate(
-            { "device.deviceId": deviceId },
-            {
-                $set: { "device.lastLogin": new Date() },
-                $addToSet: { userIds: user._id }
-            },
-            { upsert: true }
-        );
-
-        res.status(200).json({
-            success: true,
-            data: {
-                accessToken,
-                refreshToken
-            },
-            message: "Login successful"
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            errorCode: "SERVER_001",
-            message: error.message
-        });
-    }
-};
 
 // 5. Forgot Password Flow
 
