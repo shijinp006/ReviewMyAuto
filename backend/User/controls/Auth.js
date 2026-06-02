@@ -332,7 +332,7 @@ export const Login = async (req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
-        re.set(email, {
+        loginOtpStore.set(email, {
             userId: user._id,
             emailOtp,
             mobileOtp,
