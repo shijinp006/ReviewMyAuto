@@ -35,7 +35,7 @@ const resend = new Resend(process.env.RESEND_API_KEY ||"re_G4HHzLGJ_dnH1D1mae7FD
 
 export const sendOTPEmail = async (email, otp) => {
     const { data, error } = await resend.emails.send({
-        from: "onboarding@resend.dev",
+        from: "<onboarding@resend.dev>",
         to: email,
         subject: "Registration OTP",
         html: `
@@ -272,15 +272,14 @@ export const VerifyRegistrationOTP = async (req, res) => {
         const accessToken =
             generateAccessToken(user._id);
 
-        const refreshToken =
-            generateRefreshToken(user._id);
+     
 
         return res.status(201).json({
             success: true,
             data: {
                 userId: user._id,
-                accessToken,
-                refreshToken
+                accessToken
+            
             },
             message:
                 "Registration completed successfully"
@@ -446,10 +445,7 @@ export const VerifyLoginOTP = async (req, res) => {
                 user._id
             );
 
-        const refreshToken =
-            generateRefreshToken(
-                user._id
-            );
+       
 
         loginOtpStore.delete(email);
 
@@ -458,8 +454,8 @@ export const VerifyLoginOTP = async (req, res) => {
         return res.status(200).json({
             success: true,
             data: {
-                accessToken,
-                refreshToken
+                accessToken
+             
             },
             message:
                 "Login successful"
