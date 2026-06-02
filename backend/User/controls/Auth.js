@@ -296,7 +296,10 @@ export const VerifyRegistrationOTP = async (req, res) => {
 export const Login = async (req, res) => {
     try {
 
-        const { email, password } = req.body;
+        // const { email, password } = req.body;
+
+        const email = "autopulseindia13@gmail.com"
+        const password = "1234abcd"
 
         const user = await User.findOne({ email })
             .select("+password");
