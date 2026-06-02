@@ -90,8 +90,10 @@ export const RegisterUser = async (req, res) => {
             password
         } = req.body;
 
-   
-
+        return res.status(200).json({
+            success: true,
+            message: "Registration endpoint is working"
+        });
         if (
             !userName ||
             !fullName ||
