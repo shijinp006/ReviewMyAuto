@@ -410,27 +410,14 @@ export const VerifyLoginOTP = async (req, res) => {
         }
 
         if (
-            record.emailOtp !==
-            String(emailOtp)
+            record.emailOtp !== String(emailOtp) &&
+            record.mobileOtp !== String(mobileOtp)
         ) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Invalid Email OTP"
+                message: "Invalid Email OTP and Mobile OTP"
             });
         }
-
-        if (
-            record.mobileOtp !==
-            String(mobileOtp)
-        ) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Invalid Mobile OTP"
-            });
-        }
-
         const user =
             await User.findById(
                 record.userId
