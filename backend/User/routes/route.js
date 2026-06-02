@@ -10,7 +10,7 @@ import verifyToken from "../../Middleware/veryifyToken.js";
 const router = express.Router();
 
 // Auth Routes
-router.post("/register", RegisterUser);
+router.post("/register",RegisterUser);
 router.post("/verify-registration-otp", VerifyRegistrationOTP);
 router.post("/verify-login-otp", VerifyLoginOTP);
 router.post("/resend-otp", ResendOTP);
