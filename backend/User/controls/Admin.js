@@ -11,7 +11,7 @@ import Review from "../models/reviewSchema.js";
  */
 export const getAllStatus = async (req, res) => {
     try {
-        const userId =  req.session.loginData.userId||req.session.registrationData.userId  // Default for testing req.user.userId ||
+        const userId = req.session.loginData.userId || req.session.registrationData.userId  // Default for testing req.user.userId ||
         const userObjectId = new mongoose.Types.ObjectId(userId);
 
         // 1. Fetch data filtered to logged-in user only
@@ -22,8 +22,15 @@ export const getAllStatus = async (req, res) => {
             reviewStats
         ] = await Promise.all([
             User.findById(userId),
-            Vehicle.find({ userId }).sort({ createdAt: -1 }).populate("userId", "userName"),
-            DeviceSession.find({ userIds: userId }).sort({ createdAt: -1 }),
+
+            Vehicle.find({ userId })
+                .sort({ createdAt: -1 })
+                .populate("userId", "userName"),
+
+            DeviceSession.find({ userIds: userId })
+                .select("-userIds")   // 👈 REMOVE from response
+                .sort({ createdAt: -1 }),
+
             Review.aggregate([
                 { $match: { userId: userObjectId } },
                 {
