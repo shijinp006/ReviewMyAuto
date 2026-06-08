@@ -299,10 +299,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
 export const Login = async (req, res) => {
     try {
 
-        // const { email, password } = req.body;
-
-        const email = "autopulseindia13@gmail.com"
-        const password = "1234abcd"
+        const { email, password } = req.body;
 
         const user = await User.findOne({ email })
             .select("+password");
@@ -326,33 +323,24 @@ export const Login = async (req, res) => {
             });
         }
 
-        const Otp = Math.floor(
+        const otp = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
 
-
-        loginOtpStore.set(email, {
-            userId: user._id,
-            Otp,
-
+        // Store data in session
+        req.session.loginData = {
+            userId: user._id.toString(),
+            email: user.email,
+            otp,
             expiresAt: Date.now() + 5 * 60 * 1000
-        });
+        };
 
-        req.session.loginEmail = email;
-
-        await sendOTPEmail(email, Otp);
-
-        // await sendOTPSms(
-        //     user.phone,
-        //     user.countryCode,
-        //     Otp,
-        //     `Your OTP for login is: ${Otp}. It is valid for 5 minutes.` 
-        // );
+        await sendOTPEmail(email, otp);
 
         return res.status(200).json({
             success: true,
-            message:
-                "OTP sent to email and mobile"
+            message: "OTP sent successfully",
+            sessionId: req.sessionID // optional
         });
 
     } catch (error) {
@@ -365,90 +353,51 @@ export const Login = async (req, res) => {
     }
 };
 // 2. Verify OTP API
-export const VerifyLoginOTP = async (req, res) => {
+export const Login = async (req, res) => {
     try {
 
-        const {
-            otp
-        } = req.body;
+        const { email, password } = req.body;
 
-        const email =
-            req.session.loginEmail;
-
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Session expired. Please login again."
-            });
-        }
-
-        const record =
-            loginOtpStore.get(email);
-
-        if (!record) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "OTP session not found"
-            });
-        }
-
-        if (
-            Date.now() >
-            record.expiresAt
-        ) {
-
-            loginOtpStore.delete(email);
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "OTP expired"
-            });
-        }
-
-        if (
-            record.Otp !== String(otp)
-
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid Email OTP and Mobile OTP"
-            });
-        }
-        const user =
-            await User.findById(
-                record.userId
-            );
+        const user = await User.findOne({ email })
+            .select("+password");
 
         if (!user) {
-            return res.status(404).json({
+            return res.status(400).json({
                 success: false,
-                message:
-                    "User not found"
+                message: "Invalid credentials"
             });
         }
 
-        const accessToken =
-            generateAccessToken(
-                user._id
-            );
+        const match = await bcrypt.compare(
+            password,
+            user.password
+        );
 
+        if (!match) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials"
+            });
+        }
 
+        const otp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
 
-        loginOtpStore.delete(email);
+        // Store data in session
+        req.session.loginData = {
+            userId: user._id.toString(),
+            email: user.email,
+            otp,
+            expiresAt: Date.now() + 5 * 60 * 1000
+        };
 
-        delete req.session.loginEmail;
+        await sendOTPEmail(email, otp);
 
         return res.status(200).json({
             success: true,
-            data: {
-                accessToken
-
-            },
-            message:
-                "Login successful"
+            message: "OTP sent successfully",
+            sessionId: req.sessionID // optional
         });
 
     } catch (error) {
@@ -460,7 +409,6 @@ export const VerifyLoginOTP = async (req, res) => {
 
     }
 };
-
 // 3. Resend OTP API
 export const ResendOTP = async (req, res) => {
     try {
@@ -492,7 +440,7 @@ export const ResendOTP = async (req, res) => {
             });
         }
 
-        const record = registrationStore.get(key);
+        const record = registrationStore.get(key) || loginOtpStore.get(key);
 
         if (!record) {
             return res.status(200).json({

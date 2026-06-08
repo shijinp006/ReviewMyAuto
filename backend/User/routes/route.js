@@ -5,7 +5,7 @@ import { refreshTokenController } from "../controls/GenerateRefreshToken.js";
 import { AddReview, GetVehicleReviews } from "../controls/Review.js";
 import { AddVehicle, GetMyVehicles } from "../controls/Vehicle.js";
 import { getAllStatus } from "../controls/Admin.js";
-import verifyToken from "../../Middleware/veryifyToken.js";
+import verifySession from "../../Middleware/veryifyToken.js";
 
 const router = express.Router();
 
