@@ -340,7 +340,7 @@ export const Login = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "OTP sent successfully",
-            sessionId: req.sessionID // optional
+          
         });
 
     } catch (error) {
