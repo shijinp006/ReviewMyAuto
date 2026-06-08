@@ -94,7 +94,7 @@ export const RegisterUser = async (req, res) => {
             !phone ||
             !password
         ) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "All fields are required"
             });
@@ -109,7 +109,7 @@ export const RegisterUser = async (req, res) => {
         });
 
         if (existingUser) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User already exists"
             });
