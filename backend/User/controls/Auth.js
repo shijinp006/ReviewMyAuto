@@ -103,8 +103,8 @@ export const RegisterUser = async (req, res) => {
         const existingUser = await User.findOne({
             $or: [
                 { email },
-                { phone },
-                { userName }
+                { phone }
+               
             ]
         });
 
