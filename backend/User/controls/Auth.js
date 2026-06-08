@@ -280,13 +280,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
             { expiresIn: "1d" }
         );
 
-        // 🍪 set cookie
-        res.cookie("accessToken", accessToken, {
-            httpOnly: true,
-            secure: false, // set true in production
-            sameSite: "lax",
-            maxAge: 24 * 60 * 60 * 1000
-        });
+  
         return res.status(201).json({
             success: true,
             data: {
@@ -307,7 +301,10 @@ export const VerifyRegistrationOTP = async (req, res) => {
 export const Login = async (req, res) => {
     try {
 
-        const { email, password } = req.body;
+        // const { email, password } = req.body;
+
+        const email = "autopulseindia13@gmail.com"
+        const password = "1234abcd"
 
         const user = await User.findOne({ email })
             .select("+password");
@@ -399,14 +396,7 @@ export const VerifyLoginOtp = async (req, res) => {
             { expiresIn: "7d" }
         );
 
-        // 🍪 store in cookie
-        res.cookie("accessToken", token, {
-            httpOnly: true,
-            secure: false, // true in production (https)
-            sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
-
+      
 
         // clear session (important)
         req.session.loginData = null;

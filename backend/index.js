@@ -49,9 +49,7 @@ app.use(
         secret: "my-secret-key",
         resave: false,
         saveUninitialized: false,
-        cookie: {
-            maxAge: 5 * 60 * 1000
-        }
+      
     })
 );
 // MongoDB Connection
