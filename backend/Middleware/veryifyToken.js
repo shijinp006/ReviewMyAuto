@@ -1,51 +1,30 @@
-// import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken"
 
-// const verifyToken = (req, res, next) => {
-//     // Get token from headers (supporting both plain token and Bearer token)
-//     let token = req.headers['authorization'] || req.headers['x-access-token'];
+const verifyToken = (req, res, next) => {
+    // Get token from headers (supporting both plain token and Bearer token)
+    let token = req.headers['authorization'] || req.headers['x-access-token'];
 
-//     if (token && token.startsWith('Bearer ')) {
-//         token = token.split(' ')[1];
-//     }
+    if (token && token.startsWith('Bearer ')) {
+        token = token.split(' ')[1];
+    }
 
-//     if (!token) {
-//         return res.status(401).json({
-//             success: false,
-//             message: "Access denied. No token provided"
-//         });
-//     }
-
-//     try {
-//         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-//         req.user = { ...decoded, id: decoded.id.toString() }; // Ensure id is always a plain string
-//         next();
-//     } catch (error) {
-//         return res.status(403).json({
-//             success: false,
-//             message: "Invalid or expired token"
-//         });
-//     }
-// };
-
-// export default verifyToken
-
-const verifySession = (req, res, next) => {
-
-    if (!req.session) {
+    if (!token) {
         return res.status(401).json({
             success: false,
-            message: "Session not found"
+            message: "Access denied. No token provided"
         });
     }
 
-    if (!req.session.userId) {
-        return res.status(401).json({
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        req.user = { ...decoded, id: decoded.id.toString() }; // Ensure id is always a plain string
+        next();
+    } catch (error) {
+        return res.status(403).json({
             success: false,
-            message: "Unauthorized"
+            message: "Invalid or expired token"
         });
     }
-
-    next();
 };
 
-export default verifySession;
+export default verifyToken
