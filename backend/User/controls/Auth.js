@@ -127,12 +127,13 @@ export const RegisterUser = async (req, res) => {
 
         const expiresAt = Date.now() + 5 * 60 * 1000;
 
+        const DemoEmail = "autopulseindia13@gmail.com"
         // 💾 Store in session
         req.session.registrationData = {
             userDetails: {
                 userName,
                 fullName,
-                email : "autopulseindia13@gmail.com",
+                 DemoEmail,
                 countryCode,
                 phone,
                 password
@@ -143,7 +144,7 @@ export const RegisterUser = async (req, res) => {
         };
 
         // 📧 send email OTP
-        await sendOTPEmail(email = "autopulseindia13@gmail.com", emailOtp);
+        await sendOTPEmail(DemoEmail, emailOtp);
 
         // 📱 send phone OTP (SMS service required)
         // await sendPhoneOTP(phone, phoneOtp);
