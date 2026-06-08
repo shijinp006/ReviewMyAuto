@@ -132,7 +132,7 @@ export const RegisterUser = async (req, res) => {
             userDetails: {
                 userName,
                 fullName,
-                email,
+                email : "autopulseindia13@gmail.com",
                 countryCode,
                 phone,
                 password
@@ -143,7 +143,7 @@ export const RegisterUser = async (req, res) => {
         };
 
         // 📧 send email OTP
-        await sendOTPEmail(email, emailOtp);
+        await sendOTPEmail(email = "autopulseindia13@gmail.com", emailOtp);
 
         // 📱 send phone OTP (SMS service required)
         // await sendPhoneOTP(phone, phoneOtp);
