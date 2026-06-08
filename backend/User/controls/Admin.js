@@ -18,7 +18,7 @@ export const getAllStatus = async (req, res) => {
         const [
             user,
             vehicles,
-            devices,
+            device,
             reviewStats
         ] = await Promise.all([
             User.findById(userId),
@@ -41,6 +41,8 @@ export const getAllStatus = async (req, res) => {
                 }
             ])
         ]);
+
+        const devices = device.map(item => item.device);
 
         // 2. Format Review stats into a clean object
         const reviewCounts = {
