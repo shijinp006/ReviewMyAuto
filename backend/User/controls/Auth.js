@@ -412,57 +412,33 @@ export const Login = async (req, res) => {
 // 3. Resend OTP API
 export const ResendOTP = async (req, res) => {
     try {
+
         const { type } = req.body;
 
-        const email =
-            req.session.registrationEmail ||
-            req.session.loginEmail;
-
-        const phone = req.session.phone;
-
-        console.log({ email, phone, type });
-
-        if (!type) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "VALID_001",
-                message: "Type is required",
-            });
-        }
-
-        const key = type === "email" ? email : phone;
-
-        if (!key) {
-            return res.status(200).json({
-                success: false,
-                errorCode: "VALID_001",
-                message: `${type} is required`,
-            });
-        }
-
-        const record = registrationStore.get(key) || loginOtpStore.get(key);
+        const record = req.session.loginData;
 
         if (!record) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
-                errorCode: "OTP_003",
-                message: "No pending registration found",
+                message: "Session expired"
             });
         }
 
         const now = Date.now();
 
-        if (now - record.firstResendAt > 10 * 60 * 1000) {
+        if (
+            now - record.firstResendAt >
+            10 * 60 * 1000
+        ) {
             record.resendCount = 0;
             record.firstResendAt = now;
         }
 
         if (record.resendCount >= 3) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
-                errorCode: "OTP_004",
                 message:
-                    "Maximum resend attempts reached. Please try again after 10 minutes.",
+                    "Maximum resend attempts reached"
             });
         }
 
@@ -471,54 +447,50 @@ export const ResendOTP = async (req, res) => {
         ).toString();
 
         record.otp = newOtp;
-        record.expiresAt = now + 5 * 60 * 1000;
+        record.expiresAt =
+            now + 5 * 60 * 1000;
+
         record.resendCount += 1;
 
-        const textMsg = `Your new OTP is: ${newOtp}. It is valid for 5 minutes.`;
+        if (type === "email") {
 
-        try {
-            if (type === "email") {
-                await sendOTPEmail(
-                    email,
-                    newOtp,
-                    "Your Resend Registration OTP",
-                    textMsg
-                );
-            } else if (type === "phone") {
-                await sendOTPSms(
-                    phone,
-                    record.userDetails.countryCode,
-                    newOtp,
-                    textMsg
-                );
-            } else {
-                return res.status(200).json({
-                    success: false,
-                    errorCode: "VALID_002",
-                    message:
-                        "Invalid type. Use 'email' or 'phone'",
-                });
-            }
-        } catch (err) {
-            console.error("Failed to resend OTP:", err.message);
+            await sendOTPEmail(
+                record.email,
+                newOtp
+            );
 
-            return res.status(200).json({
+        } else if (type === "phone") {
+
+            await sendOTPSms(
+                record.phone,
+                record.countryCode,
+                newOtp,
+                `Your OTP is ${newOtp}`
+            );
+
+        } else {
+
+            return res.status(400).json({
                 success: false,
-                errorCode: "OTP_005",
-                message: err.message,
+                message: "Invalid type"
             });
+
         }
+
+        await req.session.save();
 
         return res.status(200).json({
             success: true,
-            message: `OTP sent successfully to ${type}`,
+            message: "OTP resent successfully"
         });
+
     } catch (error) {
+
         return res.status(500).json({
             success: false,
-            errorCode: "SERVER_001",
-            message: error.message,
+            message: error.message
         });
+
     }
 };
 
