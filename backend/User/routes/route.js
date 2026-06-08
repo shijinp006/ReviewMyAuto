@@ -1,5 +1,5 @@
 import express from "express";
-import { RegisterUser, VerifyLoginOTP,VerifyRegistrationOTP, ResendOTP, Login, ForgotPassword, VerifyForgotOTP, ResetPassword } from "../controls/Auth.js";
+import { RegisterUser, VerifyLoginOtp,VerifyRegistrationOTP, ResendOTP, Login, ForgotPassword, VerifyForgotOTP, ResetPassword } from "../controls/Auth.js";
 import { splashCheck } from "../controls/Splash.js"
 import { refreshTokenController } from "../controls/GenerateRefreshToken.js";
 import { AddReview, GetVehicleReviews } from "../controls/Review.js";
@@ -12,7 +12,7 @@ const router = express.Router();
 // Auth Routes
 router.post("/register",RegisterUser);
 router.post("/verify-registration-otp", VerifyRegistrationOTP);
-router.post("/verify-login-otp", VerifyLoginOTP);
+router.post("/verify-login-otp", VerifyLoginOtp);
 router.post("/resend-otp", ResendOTP);
 router.post("/login", Login);
 router.post("/forgot-password", ForgotPassword);
