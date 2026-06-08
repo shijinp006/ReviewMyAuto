@@ -81,7 +81,7 @@ export const AddVehicle = async (req, res) => {
  */
 export const GetMyVehicles = async (req, res) => {
     try {
-        const userId = req.headers["x-user-id"] || "6a01a1789be3d353d893d05c";
+        const userId = req.headers["x-user-id"] || "6a1ef8a4e13b65f39d3067d3";
 
         const vehicles = await Vehicle.find({ userId }).sort({ createdAt: -1 });
 
