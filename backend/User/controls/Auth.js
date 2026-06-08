@@ -353,51 +353,43 @@ export const Login = async (req, res) => {
     }
 };
 // 2. Verify OTP API
-export const Login = async (req, res) => {
+export const VerifyLoginOtp = async (req, res) => {
+
     try {
 
-        const { email, password } = req.body;
+        const { otp } = req.body;
 
-        const user = await User.findOne({ email })
-            .select("+password");
+        const sessionData = req.session.loginData;
 
-        if (!user) {
+        if (!sessionData) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid credentials"
+                message: "Session expired"
             });
         }
 
-        const match = await bcrypt.compare(
-            password,
-            user.password
-        );
-
-        if (!match) {
+        if (Date.now() > sessionData.expiresAt) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid credentials"
+                message: "OTP expired"
             });
         }
 
-        const otp = Math.floor(
-            100000 + Math.random() * 900000
-        ).toString();
+        if (otp !== sessionData.otp) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid OTP"
+            });
+        }
 
-        // Store data in session
-        req.session.loginData = {
-            userId: user._id.toString(),
-            email: user.email,
-            otp,
-            expiresAt: Date.now() + 5 * 60 * 1000
-        };
+        req.session.userId = sessionData.userId;
+        req.session.isAuthenticated = true;
 
-        await sendOTPEmail(email, otp);
+        delete req.session.loginData;
 
         return res.status(200).json({
             success: true,
-            message: "OTP sent successfully",
-            sessionId: req.sessionID // optional
+            message: "Login successful"
         });
 
     } catch (error) {
