@@ -169,16 +169,16 @@ export const VerifyRegistrationOTP = async (req, res) => {
         const sessionData = req.session.registrationData;
 
         if (!sessionData) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Registration session expired"
             });
         }
 
-        if (!emailOtp || !phoneOtp) {
-            return res.status(400).json({
+        if (!emailOtp && !phoneOtp) {
+            return res.status(200).json({
                 success: false,
-                message: "Both OTPs are required"
+                message: " OTPs are required"
             });
         }
 
@@ -188,7 +188,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
         if (Date.now() > expiresAt) {
             req.session.registrationData = null;
 
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "OTP expired"
             });
@@ -196,7 +196,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
 
         // 📧 Email OTP check
         if (sessionData.emailOtp !== String(emailOtp)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid email OTP"
             });
@@ -204,7 +204,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
 
         // 📱 Phone OTP check
         if (sessionData.phoneOtp !== String(phoneOtp)) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid phone OTP"
             });
@@ -227,7 +227,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
         if (existingUser) {
             req.session.registrationData = null;
 
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "User already exists"
             });
