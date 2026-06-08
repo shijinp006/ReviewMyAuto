@@ -505,73 +505,142 @@ export const ResendOTP = async (req, res) => {
 export const ForgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email is required" });
+
+        if (!email)
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Email is required",
+            });
 
         const user = await User.findOne({ email });
-        if (!user) return res.status(200).json({ success: false, errorCode: "USER_003", message: "User not found" });
+        if (!user)
+            return res.status(200).json({
+                success: false,
+                errorCode: "USER_003",
+                message: "User not found",
+            });
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = Date.now() + 5 * 60 * 1000;
 
-        forgotPasswordStore.set(email, { otp, expiresAt, verified: false });
+        // 🧠 store in session instead of Map
+        req.session.forgotPassword = {
+            email,
+            otp,
+            expiresAt,
+            verified: false,
+        };
 
         const textMsg = `Your OTP to reset password is: ${otp}. It is valid for 5 minutes.`;
 
-        await sendOTPEmail(email, otp, 'Password Reset OTP', textMsg);
-        // await sendOTPSms(user.phone, user.countryCode, otp, textMsg);
+        await sendOTPEmail(email, otp, "Password Reset OTP", textMsg);
 
-        return res.status(200).json({ success: true, message: "Password reset OTP sent successfully" });
+        return res.status(200).json({
+            success: true,
+            message: "Password reset OTP sent successfully",
+        });
     } catch (error) {
-        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message,
+        });
     }
 };
 
 export const VerifyForgotOTP = async (req, res) => {
     try {
         const { email, otp } = req.body;
-        if (!email || !otp) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email and OTP are required" });
 
-        const record = forgotPasswordStore.get(email);
-        if (!record) return res.status(200).json({ success: false, errorCode: "OTP_003", message: "No password reset request found" });
+        const record = req.session.forgotPassword;
+
+        if (!email || !otp)
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Email and OTP are required",
+            });
+
+        if (!record || record.email !== email)
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_003",
+                message: "No password reset request found",
+            });
 
         if (Date.now() > record.expiresAt) {
-            forgotPasswordStore.delete(email);
-            return res.status(200).json({ success: false, errorCode: "OTP_001", message: "OTP has expired" });
+            req.session.forgotPassword = null;
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_001",
+                message: "OTP has expired",
+            });
         }
 
-        if (record.otp !== String(otp)) {
-            return res.status(200).json({ success: false, errorCode: "OTP_001", message: "Invalid OTP" });
-        }
+        if (record.otp !== String(otp))
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_001",
+                message: "Invalid OTP",
+            });
 
-        record.verified = true;
+        // mark verified
+        req.session.forgotPassword.verified = true;
 
-        return res.status(200).json({ success: true, message: "OTP verified successfully. You can now reset your password." });
+        return res.status(200).json({
+            success: true,
+            message:
+                "OTP verified successfully. You can now reset your password.",
+        });
     } catch (error) {
-        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message,
+        });
     }
 };
 
 export const ResetPassword = async (req, res) => {
     try {
         const { email, newPassword } = req.body;
-        if (!email || !newPassword) return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email and new password are required" });
 
-        const record = forgotPasswordStore.get(email);
-        if (!record || !record.verified) {
-            return res.status(200).json({ success: false, errorCode: "AUTH_005", message: "Unauthorized. Please verify OTP first." });
-        }
+        const record = req.session.forgotPassword;
+
+        if (!email || !newPassword)
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Email and new password are required",
+            });
+
+        if (!record || !record.verified || record.email !== email)
+            return res.status(200).json({
+                success: false,
+                errorCode: "AUTH_005",
+                message: "Unauthorized. Please verify OTP first.",
+            });
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
+
         await User.findOneAndUpdate({ email }, { password: hashedPassword });
 
-        forgotPasswordStore.delete(email);
+        // clear session
+        req.session.forgotPassword = null;
 
-        return res.status(200).json({ success: true, message: "Password reset successfully" });
+        return res.status(200).json({
+            success: true,
+            message: "Password reset successfully",
+        });
     } catch (error) {
-        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message,
+        });
     }
 };
-
 export const Logout = async (req, res) => {
     res.json({ success: true, message: "Logged out successfully" });
 };
