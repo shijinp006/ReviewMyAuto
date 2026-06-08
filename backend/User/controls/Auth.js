@@ -115,14 +115,20 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
-        const otp = Math.floor(
+        // 📧 Email OTP
+        const emailOtp = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
 
-        const expiresAt =
-            Date.now() + 5 * 60 * 1000;
+        // 📱 Phone OTP
+        const phoneOtp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
 
-        registrationStore.set(email, {
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+
+        // 💾 Store in session
+        req.session.registrationData = {
             userDetails: {
                 userName,
                 fullName,
@@ -131,18 +137,20 @@ export const RegisterUser = async (req, res) => {
                 phone,
                 password
             },
-            otp,
+            emailOtp,
+            phoneOtp,
             expiresAt
-        });
+        };
 
-        req.session.registrationEmail = email;
-        req.session.phone = phone;
+        // 📧 send email OTP
+        await sendOTPEmail(email, emailOtp);
 
-        await sendOTPEmail(email, otp);
+        // 📱 send phone OTP (SMS service required)
+        // await sendPhoneOTP(phone, phoneOtp);
 
         return res.status(200).json({
             success: true,
-            message: "OTP sent successfully"
+            message: "OTP sent to email and phone"
         });
 
     } catch (error) {
@@ -156,35 +164,29 @@ export const RegisterUser = async (req, res) => {
 
 export const VerifyRegistrationOTP = async (req, res) => {
     try {
-        const { otp } = req.body;
+        const { emailOtp, phoneOtp } = req.body;
 
-        const email = req.session.registrationEmail;
+        const sessionData = req.session.registrationData;
 
-        if (!email) {
+        if (!sessionData) {
             return res.status(400).json({
                 success: false,
                 message: "Registration session expired"
             });
         }
 
-        if (!otp) {
+        if (!emailOtp || !phoneOtp) {
             return res.status(400).json({
                 success: false,
-                message: "OTP is required"
+                message: "Both OTPs are required"
             });
         }
 
-        const record = registrationStore.get(email);
+        const { userDetails, expiresAt } = sessionData;
 
-        if (!record) {
-            return res.status(400).json({
-                success: false,
-                message: "OTP session not found"
-            });
-        }
-
-        if (Date.now() > record.expiresAt) {
-            registrationStore.delete(email);
+        // ⏳ expiry check
+        if (Date.now() > expiresAt) {
+            req.session.registrationData = null;
 
             return res.status(400).json({
                 success: false,
@@ -192,31 +194,38 @@ export const VerifyRegistrationOTP = async (req, res) => {
             });
         }
 
-        if (record.otp !== String(otp)) {
+        // 📧 Email OTP check
+        if (sessionData.emailOtp !== String(emailOtp)) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid OTP"
+                message: "Invalid email OTP"
+            });
+        }
+
+        // 📱 Phone OTP check
+        if (sessionData.phoneOtp !== String(phoneOtp)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid phone OTP"
             });
         }
 
         const {
             userName,
             fullName,
+            email,
             countryCode,
             phone,
             password
-        } = record.userDetails;
+        } = userDetails;
 
+        // 🔍 Check existing user
         const existingUser = await User.findOne({
-            $or: [
-                { email },
-                { phone },
-                { userName }
-            ]
+            $or: [{ email }, { phone }, { userName }]
         });
 
         if (existingUser) {
-            registrationStore.delete(email);
+            req.session.registrationData = null;
 
             return res.status(400).json({
                 success: false,
@@ -224,11 +233,10 @@ export const VerifyRegistrationOTP = async (req, res) => {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(
-            password,
-            10
-        );
+        // 🔐 Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        // 👤 Create user
         const user = await User.create({
             userName,
             fullName,
@@ -239,21 +247,12 @@ export const VerifyRegistrationOTP = async (req, res) => {
             isVerified: true
         });
 
-        const deviceId =
-            req.headers["x-device-id"] || "DEVICEID124";
-
-        const deviceType =
-            req.headers["x-platform"] || "android";
-
-        const deviceName =
-            req.headers["x-device-name"];
-
-        const deviceCategory =
-            req.headers["x-device-category"] ||
-            deviceType;
-
-        const location =
-            req.headers["x-location"];
+        // 📱 Device tracking
+        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
+        const deviceType = req.headers["x-platform"] || "android";
+        const deviceName = req.headers["x-device-name"];
+        const deviceCategory = req.headers["x-device-category"] || deviceType;
+        const location = req.headers["x-location"];
 
         await deviceSchema.create({
             device: {
@@ -267,25 +266,27 @@ export const VerifyRegistrationOTP = async (req, res) => {
             userIds: [user._id]
         });
 
-        registrationStore.delete(email);
+        // 🧹 Clear session
+        req.session.registrationData = null;
 
-        delete req.session.registrationEmail;
-        delete req.session.phone;
-
-        const accessToken =
-            generateAccessToken(user._id);
-
-
+        // 🔑 Generate JWT
+        const accessToken = jwt.sign(
+            {
+                userId: user._id,
+                email: user.email,
+                role: user.role || "user"
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
 
         return res.status(201).json({
             success: true,
             data: {
                 userId: user._id,
                 accessToken
-
             },
-            message:
-                "Registration completed successfully"
+            message: "Registration completed successfully"
         });
 
     } catch (error) {
@@ -305,7 +306,7 @@ export const Login = async (req, res) => {
             .select("+password");
 
         if (!user) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid credentials"
             });
@@ -317,7 +318,7 @@ export const Login = async (req, res) => {
         );
 
         if (!match) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid credentials"
             });
@@ -361,21 +362,21 @@ export const VerifyLoginOtp = async (req, res) => {
         const data = req.session.loginData;
 
         if (!data) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Session expired"
             });
         }
 
         if (data.expiresAt < Date.now()) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "OTP expired"
             });
         }
 
         if (data.otp !== otp) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid OTP"
             });
@@ -416,7 +417,7 @@ export const ResendOTP = async (req, res) => {
         const record = req.session.loginData;
 
         if (!record) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Session expired"
             });
@@ -433,7 +434,7 @@ export const ResendOTP = async (req, res) => {
         }
 
         if (record.resendCount >= 3) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message:
                     "Maximum resend attempts reached"
