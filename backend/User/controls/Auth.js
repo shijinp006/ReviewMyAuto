@@ -136,6 +136,7 @@ export const RegisterUser = async (req, res) => {
         });
 
         req.session.registrationEmail = email;
+        req.session.phone = phone;
 
         await sendOTPEmail(email, otp);
 
@@ -269,6 +270,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
         registrationStore.delete(email);
 
         delete req.session.registrationEmail;
+        delete req.session.phone;
 
         const accessToken =
             generateAccessToken(user._id);
@@ -324,29 +326,27 @@ export const Login = async (req, res) => {
             });
         }
 
-        const emailOtp = Math.floor(
+        const Otp = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
 
-        const mobileOtp = Math.floor(
-            100000 + Math.random() * 900000
-        ).toString();
 
         loginOtpStore.set(email, {
             userId: user._id,
-            emailOtp,
-            mobileOtp,
+            Otp,
+
             expiresAt: Date.now() + 5 * 60 * 1000
         });
 
         req.session.loginEmail = email;
 
-        await sendOTPEmail(email, emailOtp);
+        await sendOTPEmail(email, Otp);
 
         // await sendOTPSms(
         //     user.phone,
         //     user.countryCode,
-        //     mobileOtp
+        //     Otp,
+        //     `Your OTP for login is: ${Otp}. It is valid for 5 minutes.` 
         // );
 
         return res.status(200).json({
@@ -369,8 +369,7 @@ export const VerifyLoginOTP = async (req, res) => {
     try {
 
         const {
-            emailOtp,
-            mobileOtp
+            otp
         } = req.body;
 
         const email =
@@ -410,8 +409,8 @@ export const VerifyLoginOTP = async (req, res) => {
         }
 
         if (
-            record.emailOtp !== String(emailOtp) &&
-            record.mobileOtp !== String(mobileOtp)
+            record.Otp !== String(otp)
+
         ) {
             return res.status(400).json({
                 success: false,
@@ -465,16 +464,42 @@ export const VerifyLoginOTP = async (req, res) => {
 // 3. Resend OTP API
 export const ResendOTP = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { type } = req.body;
 
-        if (!email) {
-            return res.status(200).json({ success: false, errorCode: "VALID_001", message: "Email is required" });
+        const email =
+            req.session.registrationEmail ||
+            req.session.loginEmail;
+
+        const phone = req.session.phone;
+
+        console.log({ email, phone, type });
+
+        if (!type) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "Type is required",
+            });
         }
 
-        const record = registrationStore.get(email);
+        const key = type === "email" ? email : phone;
+
+        if (!key) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: `${type} is required`,
+            });
+        }
+
+        const record = registrationStore.get(key);
 
         if (!record) {
-            return res.status(200).json({ success: false, errorCode: "OTP_003", message: "No pending registration found for this email" });
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_003",
+                message: "No pending registration found",
+            });
         }
 
         const now = Date.now();
@@ -485,31 +510,69 @@ export const ResendOTP = async (req, res) => {
         }
 
         if (record.resendCount >= 3) {
-            return res.status(200).json({ success: false, errorCode: "OTP_004", message: "Maximum resend attempts reached. Please try again after 10 minutes." });
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_004",
+                message:
+                    "Maximum resend attempts reached. Please try again after 10 minutes.",
+            });
         }
 
-        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        const newOtp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
         record.otp = newOtp;
         record.expiresAt = now + 5 * 60 * 1000;
         record.resendCount += 1;
 
-        const textMsg = `Your new OTP for registration is: ${newOtp}. It is valid for 5 minutes.`;
+        const textMsg = `Your new OTP is: ${newOtp}. It is valid for 5 minutes.`;
 
         try {
-            await sendOTPEmail(email, newOtp, 'Your Resend Registration OTP', textMsg);
-            // await sendOTPSms(record.userDetails.phone, record.userDetails.countryCode, newOtp, textMsg);
+            if (type === "email") {
+                await sendOTPEmail(
+                    email,
+                    newOtp,
+                    "Your Resend Registration OTP",
+                    textMsg
+                );
+            } else if (type === "phone") {
+                await sendOTPSms(
+                    phone,
+                    record.userDetails.countryCode,
+                    newOtp,
+                    textMsg
+                );
+            } else {
+                return res.status(200).json({
+                    success: false,
+                    errorCode: "VALID_002",
+                    message:
+                        "Invalid type. Use 'email' or 'phone'",
+                });
+            }
         } catch (err) {
             console.error("Failed to resend OTP:", err.message);
-            return res.status(200).json({ success: false, errorCode: "EMAIL_001", message: `Failed to resend OTP: ${err.message}` });
+
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_005",
+                message: err.message,
+            });
         }
 
-        return res.status(200).json({ success: true, message: "OTP resent successfully" });
-
+        return res.status(200).json({
+            success: true,
+            message: `OTP sent successfully to ${type}`,
+        });
     } catch (error) {
-        return res.status(500).json({ success: false, errorCode: "SERVER_001", message: error.message });
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message,
+        });
     }
 };
-
 
 
 // 5. Forgot Password Flow
