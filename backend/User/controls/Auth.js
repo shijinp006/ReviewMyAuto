@@ -277,7 +277,7 @@ export const VerifyRegistrationOTP = async (req, res) => {
                 email: user.email,
                 role: user.role || "user"
             },
-            process.env.JWT_SECRET,
+            process.env.JWT_ACCESS_SECRET,
             { expiresIn: "1d" }
         );
 
