@@ -340,7 +340,7 @@ export const Login = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "OTP sent successfully",
-          
+
         });
 
     } catch (error) {
@@ -356,49 +356,55 @@ export const Login = async (req, res) => {
 export const VerifyLoginOtp = async (req, res) => {
 
     try {
-
         const { otp } = req.body;
 
-        const sessionData = req.session.loginData;
+        const data = req.session.loginData;
 
-        if (!sessionData) {
+        if (!data) {
             return res.status(400).json({
                 success: false,
                 message: "Session expired"
             });
         }
 
-        if (Date.now() > sessionData.expiresAt) {
+        if (data.expiresAt < Date.now()) {
             return res.status(400).json({
                 success: false,
                 message: "OTP expired"
             });
         }
 
-        if (otp !== sessionData.otp) {
+        if (data.otp !== otp) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid OTP"
             });
         }
 
-        req.session.userId = sessionData.userId;
-        req.session.isAuthenticated = true;
+        // 🎯 Generate JWT after OTP success
+        const token = jwt.sign(
+            {
+                id: data.userId,
+                email: data.email
+            },
+            process.env.JWT_ACCESS_SECRET,
+            { expiresIn: "7d" }
+        );
 
-        delete req.session.loginData;
+        // clear session (important)
+        req.session.loginData = null;
 
         return res.status(200).json({
             success: true,
-            message: "Login successful"
+            message: "Login successful",
+            token
         });
 
     } catch (error) {
-
         return res.status(500).json({
             success: false,
             message: error.message
         });
-
     }
 };
 // 3. Resend OTP API
