@@ -356,7 +356,7 @@ export const Login = async (req, res) => {
 export const VerifyLoginOtp = async (req, res) => {
 
     try {
-
+s
         const { otp } = req.body;
 
         const sessionData = req.session.loginData;
