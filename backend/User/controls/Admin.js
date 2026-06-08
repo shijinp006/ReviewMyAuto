@@ -11,7 +11,7 @@ import Review from "../models/reviewSchema.js";
  */
 export const getAllStatus = async (req, res) => {
     try {
-        const userId = "6a01a1789be3d353d893d05c"; // Default for testing req.user.userId ||
+        const userId =  req.session.userId  // Default for testing req.user.userId ||
         const userObjectId = new mongoose.Types.ObjectId(userId);
 
         // 1. Fetch data filtered to logged-in user only
