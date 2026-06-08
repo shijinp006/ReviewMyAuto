@@ -552,18 +552,18 @@ export const ForgotPassword = async (req, res) => {
 
 export const VerifyForgotOTP = async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        const { otp } = req.body;
 
         const record = req.session.forgotPassword;
 
-        if (!email || !otp)
+        if ( !otp)
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
                 message: "Email and OTP are required",
             });
 
-        if (!record || record.email !== email)
+        if (!record )
             return res.status(200).json({
                 success: false,
                 errorCode: "OTP_003",
