@@ -133,7 +133,7 @@ export const RegisterUser = async (req, res) => {
             userDetails: {
                 userName,
                 fullName,
-                 DemoEmail,
+                email,
                 countryCode,
                 phone,
                 password
