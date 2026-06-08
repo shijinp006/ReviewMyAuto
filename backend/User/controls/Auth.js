@@ -204,12 +204,12 @@ export const VerifyRegistrationOTP = async (req, res) => {
         }
 
         // 📱 Phone OTP check
-        if (sessionData.phoneOtp !== String(phoneOtp)) {
-            return res.status(200).json({
-                success: false,
-                message: "Invalid phone OTP"
-            });
-        }
+        // if (sessionData.phoneOtp !== String(phoneOtp)) {
+        //     return res.status(200).json({
+        //         success: false,
+        //         message: "Invalid phone OTP"
+        //     });
+        // }
 
         const {
             userName,
