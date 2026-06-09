@@ -227,8 +227,8 @@ export const VerifyRegistrationOTP = async (
         }
 
         if (
-            otpRecord.emailotp !==
-            String(emailOtp)
+            emailOtp &&
+            emailOtp !== String(otpRecord.emailotp)
         ) {
             return res.status(200).json({
                 success: false,
