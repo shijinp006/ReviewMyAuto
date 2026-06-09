@@ -789,8 +789,13 @@ export const ResetPassword = async (req, res) => {
         const record =
             await Otp.findOne({
                 deviceId,
-                
             });
+
+            return res.status(200).json({
+                success: true,
+                message: "Record found",
+                data: record    
+                });
 
         if (
             !record ||
