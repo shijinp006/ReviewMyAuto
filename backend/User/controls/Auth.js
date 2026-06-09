@@ -247,9 +247,6 @@ export const VerifyRegistrationOTP = async (
             });
         }
 
-
-
-
         const {
             userName,
             fullName,
@@ -264,7 +261,7 @@ export const VerifyRegistrationOTP = async (
                 $or: [
                     { email },
                     { phone },
-                    { userName }
+                  
                 ]
             });
 

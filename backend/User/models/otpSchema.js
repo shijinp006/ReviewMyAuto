@@ -18,14 +18,41 @@ const otpSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+
         mobileotp: {
             type: String,
             required: true
         },
+
         userId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-        
+            ref: "User"
+        },
+
+        userDetails: {
+            userName: {
+                type: String
+            },
+
+            fullName: {
+                type: String
+            },
+
+            email: {
+                type: String
+            },
+
+            countryCode: {
+                type: String
+            },
+
+            phone: {
+                type: String
+            },
+
+            password: {
+                type: String
+            }
         },
 
         expiresAt: {
@@ -44,4 +71,7 @@ otpSchema.index(
     { expireAfterSeconds: 0 }
 );
 
-export const Otp = mongoose.model("Otp", otpSchema);
+export const Otp = mongoose.model(
+    "Otp",
+    otpSchema
+);
