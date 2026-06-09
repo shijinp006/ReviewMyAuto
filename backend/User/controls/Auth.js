@@ -188,7 +188,7 @@ export const VerifyRegistrationOTP = async (
             req.headers["X-Device-Id"] ||
             "DEVICEID124";
 
-        if (!emailOtp || !phoneOtp) {
+        if (!emailOtp && !phoneOtp) {
             return res.status(200).json({
                 success: false,
                 message:
