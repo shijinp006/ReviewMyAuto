@@ -341,12 +341,7 @@ export const Login = async (req, res) => {
             expiresAt: Date.now() + 5 * 60 * 1000
         };
 
-        return res.status(200).json({
-            success: true,
-            message: "OTP sent to email",
-            data : req.session.loginData
-        });
-
+  
         await sendOTPEmail(email, otp);
 
         return res.status(200).json({
