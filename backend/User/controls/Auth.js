@@ -341,6 +341,12 @@ export const Login = async (req, res) => {
             expiresAt: Date.now() + 5 * 60 * 1000
         };
 
+        return res.status(200).json({
+            success: true,
+            message: "OTP sent to email",
+            data : req.session.loginData
+        });
+
         await sendOTPEmail(email, otp);
 
         return res.status(200).json({
@@ -366,18 +372,14 @@ export const VerifyLoginOtp = async (req, res) => {
 
         const data = req.session.loginData;
 
-        // return res.status(200).json({
-        //     success: true,
-        //     data : data,
-        //     message: "OTP verification endpoint hit"
-        // });
+      
 
-        // if (!data) {
-        //     return res.status(200).json({
-        //         success: false,
-        //         message: "Session expired"
-        //     });
-        // }
+        if (!data) {
+            return res.status(200).json({
+                success: false,
+                message: "Session expired"
+            });
+        }
 
         if (data.expiresAt < Date.now()) {
             return res.status(200).json({
