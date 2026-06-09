@@ -446,7 +446,7 @@ export const VerifyLoginOtp = async (
         const { otp } = req.body;
 
         const deviceId =
-            req.headers["x-device-id"] ||
+            req.headers["X-Device-Id"] ||
             "DEVICEID124";
 
         if (!otp) {
