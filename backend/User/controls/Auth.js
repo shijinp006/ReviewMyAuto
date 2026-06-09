@@ -141,7 +141,7 @@ export const RegisterUser = async (req, res) => {
             deviceId,
             email,
             emailotp: emailOtp,
-            mobileotp:phoneOtp,
+            mobileotp: phoneOtp,
             userDetails: {
                 userName,
                 fullName,
@@ -152,7 +152,7 @@ export const RegisterUser = async (req, res) => {
             },
             expiresAt
         });
-const demoEmail = "autopulseindia13@gmail.com"
+        const demoEmail = "autopulseindia13@gmail.com"
         await sendOTPEmail(
             demoEmail,
             emailOtp
@@ -238,14 +238,17 @@ export const VerifyRegistrationOTP = async (
         }
 
         if (
-           phoneOtp !== String("123456")
+            phoneOtp &&
+            phoneOtp !== "123456"
         ) {
             return res.status(200).json({
                 success: false,
-                message:
-                    "Invalid phone OTP"
+                message: "Invalid phone OTP"
             });
         }
+
+
+
 
         const {
             userName,
@@ -305,7 +308,7 @@ export const VerifyRegistrationOTP = async (
 
         const deviceCategory =
             req.headers[
-                "X-Device-Category"
+            "X-Device-Category"
             ] || deviceType;
 
         const location =
@@ -772,7 +775,7 @@ export const ResetPassword = async (req, res) => {
             email,
             newPassword
         } = req.body;
-       const deviceId = req.headers["X-Device-Id"] || "DEVICEID124";
+        const deviceId = req.headers["X-Device-Id"] || "DEVICEID124";
 
         if (
             !email ||
