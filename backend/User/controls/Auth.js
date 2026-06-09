@@ -791,11 +791,9 @@ export const ResetPassword = async (req, res) => {
                 deviceId,
             });
 
-      
-
+    
         if (
             !record
-
         ) {
             return res.status(200).json({
                 success: false,
