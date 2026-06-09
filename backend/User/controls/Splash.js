@@ -8,12 +8,12 @@ export const splashCheck = async (req, res) => {
         if (accessToken && accessToken.startsWith('Bearer ')) {
             accessToken = accessToken.split(' ')[1];
         }
-        const refreshToken = req.headers["x-refresh-token"];
+        const refreshToken = req.headers["X-Refresh-Token"] || req.headers["x-refresh-token"];
         // const deviceId = req.cookies?.deviceId;
         // console.log(deviceId, "deiviceId");
-        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
-        const deviceType = req.headers["x-platform"];
-        const appVersion = req.headers["x-app-version"];
+        const deviceId = req.headers["X-Device-Id"] || "DEVICEID124";
+        const deviceType = req.headers["X-Platform"];
+        const appVersion = req.headers["X-App-Version"];
 
         /* 1️⃣ Access Token Check */
         if (accessToken) {

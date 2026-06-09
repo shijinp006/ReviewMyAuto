@@ -20,7 +20,7 @@ export const AddVehicle = async (req, res) => {
         } = req.body;
 
         // Extracting userId from headers (following the pattern used in Review.js)
-        const userId = req.headers["x-user-id"] || "6a1ef8a4e13b65f39d3067d3"; // Default fallback for testing if needed
+        const userId = req.headers["X-User-Id"] || "6a1ef8a4e13b65f39d3067d3"; // Default fallback for testing if needed
 
         // 1. Validation
         if (!type || !brand || !model || !year || !fuel || !regNo) {
@@ -81,7 +81,7 @@ export const AddVehicle = async (req, res) => {
  */
 export const GetMyVehicles = async (req, res) => {
     try {
-        const userId = req.headers["x-user-id"] || "6a1ef8a4e13b65f39d3067d3";
+        const userId = req.headers["X-User-Id"] || "6a1ef8a4e13b65f39d3067d3";
 
         const vehicles = await Vehicle.find({ userId }).sort({ createdAt: -1 });
 

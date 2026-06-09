@@ -7,6 +7,7 @@ import nodemailer from "nodemailer";
 import dns from "dns";
 let twilioClient = null;
 import { Resend } from "resend";
+import { Otp } from "../models/otpSchema.js"
 
 // Email regex validation
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -77,6 +78,7 @@ export const sendOTPEmail = async (email, otp) => {
 // 1. Register API
 export const RegisterUser = async (req, res) => {
     try {
+
         const {
             userName,
             fullName,
@@ -85,6 +87,10 @@ export const RegisterUser = async (req, res) => {
             phone,
             password
         } = req.body;
+
+        const deviceId =
+            req.headers["X-Device-Id"] ||
+            "DEVICEID124";
 
         if (
             !userName ||
@@ -104,7 +110,6 @@ export const RegisterUser = async (req, res) => {
             $or: [
                 { email },
                 { phone }
-               
             ]
         });
 
@@ -115,21 +120,28 @@ export const RegisterUser = async (req, res) => {
             });
         }
 
-        // 📧 Email OTP
         const emailOtp = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
 
-        // 📱 Phone OTP
         const phoneOtp = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
 
-        const expiresAt = Date.now() + 5 * 60 * 1000;
+        const expiresAt = new Date(
+            Date.now() + 5 * 60 * 1000
+        );
 
-        const DemoEmail = "autopulseindia13@gmail.com"
-        // 💾 Store in session
-        req.session.registrationData = {
+        // Remove old OTP for this device
+        await Otp.deleteMany({
+            deviceId
+        });
+
+        await Otp.create({
+            deviceId,
+            email,
+            emailOtp,
+            phoneOtp,
             userDetails: {
                 userName,
                 fullName,
@@ -138,56 +150,75 @@ export const RegisterUser = async (req, res) => {
                 phone,
                 password
             },
-            emailOtp,
-            phoneOtp,
             expiresAt
-        };
+        });
 
-        // 📧 send email OTP
-        await sendOTPEmail(DemoEmail, emailOtp);
-
-        // 📱 send phone OTP (SMS service required)
-        // await sendPhoneOTP(phone, phoneOtp);
+        await sendOTPEmail(
+            email,
+            emailOtp
+        );
 
         return res.status(200).json({
             success: true,
-            message: "OTP sent to email and phone"
+            message: "OTP sent successfully"
         });
 
     } catch (error) {
+
         return res.status(500).json({
             success: false,
             message: error.message
         });
+
     }
 };
 
-
-export const VerifyRegistrationOTP = async (req, res) => {
+export const VerifyRegistrationOTP = async (
+    req,
+    res
+) => {
     try {
-        const { emailOtp, phoneOtp } = req.body;
 
-        const sessionData = req.session.registrationData;
+        const {
+            emailOtp,
+            phoneOtp
+        } = req.body;
 
-        if (!sessionData) {
+        const deviceId =
+            req.headers["X-Device-Id"] ||
+            "DEVICEID124";
+
+        if (!emailOtp || !phoneOtp) {
             return res.status(200).json({
                 success: false,
-                message: "Registration session expired"
+                message:
+                    "Both email and phone OTPs are required"
             });
         }
 
-        if (!emailOtp && !phoneOtp) {
+        const otpRecord =
+            await Otp.findOne({
+                deviceId
+            });
+
+        if (!otpRecord) {
             return res.status(200).json({
                 success: false,
-                message: " OTPs are required"
+                message:
+                    "Registration session expired"
             });
         }
 
-        const { userDetails, expiresAt } = sessionData;
+        if (
+            Date.now() >
+            new Date(
+                otpRecord.expiresAt
+            ).getTime()
+        ) {
 
-        // ⏳ expiry check
-        if (Date.now() > expiresAt) {
-            req.session.registrationData = null;
+            await Otp.deleteOne({
+                _id: otpRecord._id
+            });
 
             return res.status(200).json({
                 success: false,
@@ -195,21 +226,27 @@ export const VerifyRegistrationOTP = async (req, res) => {
             });
         }
 
-        // 📧 Email OTP check
-        if (sessionData.emailOtp !== String(emailOtp)) {
+        if (
+            otpRecord.emailOtp !==
+            String(emailOtp)
+        ) {
             return res.status(200).json({
                 success: false,
-                message: "Invalid email OTP"
+                message:
+                    "Invalid email OTP"
             });
         }
 
-        // 📱 Phone OTP check
-        // if (sessionData.phoneOtp !== String(phoneOtp)) {
-        //     return res.status(200).json({
-        //         success: false,
-        //         message: "Invalid phone OTP"
-        //     });
-        // }
+        if (
+            otpRecord.phoneOtp !==
+            String(phoneOtp)
+        ) {
+            return res.status(200).json({
+                success: false,
+                message:
+                    "Invalid phone OTP"
+            });
+        }
 
         const {
             userName,
@@ -218,42 +255,62 @@ export const VerifyRegistrationOTP = async (req, res) => {
             countryCode,
             phone,
             password
-        } = userDetails;
+        } = otpRecord.userDetails;
 
-        // 🔍 Check existing user
-        const existingUser = await User.findOne({
-            $or: [{ email }, { phone }, { userName }]
-        });
+        const existingUser =
+            await User.findOne({
+                $or: [
+                    { email },
+                    { phone },
+                    { userName }
+                ]
+            });
 
         if (existingUser) {
-            req.session.registrationData = null;
+
+            await Otp.deleteOne({
+                _id: otpRecord._id
+            });
 
             return res.status(200).json({
                 success: false,
-                message: "User already exists"
+                message:
+                    "User already exists"
             });
         }
 
-        // 🔐 Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword =
+            await bcrypt.hash(
+                password,
+                10
+            );
 
-        // 👤 Create user
-        const user = await User.create({
-            userName,
-            fullName,
-            email,
-            countryCode,
-            phone,
-            password: hashedPassword,
-            isVerified: true
-        });
+        const user =
+            await User.create({
+                userName,
+                fullName,
+                email,
+                countryCode,
+                phone,
+                password:
+                    hashedPassword,
+                isVerified: true
+            });
 
-        // 📱 Device tracking
-        const deviceId = req.headers["x-device-id"] || "DEVICEID124";
-        const deviceType = req.headers["x-platform"] || "android";
-        const deviceName = req.headers["x-device-name"];
-        const deviceCategory = req.headers["x-device-category"] || deviceType;
-        const location = req.headers["x-location"];
+        const deviceType =
+            req.headers["X-Platform"] ||
+            "android";
+
+        const deviceName =
+            req.headers["X-App-Version"];
+
+        const deviceCategory =
+            req.headers[
+                "X-Device-Category"
+            ] || deviceType;
+
+        const location =
+            req.headers["X-Location"];
 
         await deviceSchema.create({
             device: {
@@ -262,53 +319,64 @@ export const VerifyRegistrationOTP = async (req, res) => {
                 deviceName,
                 deviceCategory,
                 location,
-                lastLogin: new Date()
+                lastLogin:
+                    new Date()
             },
             userIds: [user._id]
         });
 
-        // 🧹 Clear session
-        req.session.registrationData = null;
+        await Otp.deleteOne({
+            _id: otpRecord._id
+        });
 
-        // 🔑 Generate JWT
-        const accessToken = jwt.sign(
-            {
-                userId: user._id,
-                email: user.email,
-                role: user.role || "user"
-            },
-            process.env.JWT_ACCESS_SECRET,
-            { expiresIn: "1d" }
-        );
+        const accessToken =
+            jwt.sign(
+                {
+                    userId: user._id,
+                    email: user.email,
+                    role:
+                        user.role ||
+                        "user"
+                },
+                process.env.JWT_ACCESS_SECRET,
+                {
+                    expiresIn: "1d"
+                }
+            );
 
-  
         return res.status(201).json({
             success: true,
             data: {
                 userId: user._id,
                 accessToken
             },
-            message: "Registration completed successfully"
+            message:
+                "Registration completed successfully"
         });
 
     } catch (error) {
+
         return res.status(500).json({
             success: false,
             message: error.message
         });
+
     }
 };
 
 export const Login = async (req, res) => {
     try {
 
-        // const { email, password } = req.body;
+        const email = "autopulseindia13@gmail.com";
+        const password = "1234abcd";
 
-        const email = "autopulseindia13@gmail.com"
-        const password = "1234abcd"
+        const deviceId =
+            req.headers["X-Device-Id"] ||
+            "DEVICEID124";
 
-        const user = await User.findOne({ email })
-            .select("+password");
+        const user = await User.findOne({
+            email
+        }).select("+password");
 
         if (!user) {
             return res.status(200).json({
@@ -333,21 +401,29 @@ export const Login = async (req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
-        // Store data in session
-        req.session.loginData = {
-            userId: user._id.toString(),
-            email: user.email,
-            otp,
-            expiresAt: Date.now() + 5 * 60 * 1000
-        };
+        // Remove previous OTPs for this device
+        await Otp.deleteMany({
+            deviceId
+        });
 
-  
-        await sendOTPEmail(email, otp);
+        await Otp.create({
+            email: user.email,
+            deviceId,
+            otp,
+            userId: user._id,
+            expiresAt: new Date(
+                Date.now() + 5 * 60 * 1000
+            )
+        });
+
+        await sendOTPEmail(
+            user.email,
+            otp
+        );
 
         return res.status(200).json({
             success: true,
-            message: "OTP sent successfully",
-
+            message: "OTP sent successfully"
         });
 
     } catch (error) {
@@ -360,62 +436,95 @@ export const Login = async (req, res) => {
     }
 };
 // 2. Verify OTP API
-export const VerifyLoginOtp = async (req, res) => {
-
+export const VerifyLoginOtp = async (
+    req,
+    res
+) => {
     try {
+
         const { otp } = req.body;
 
-        const data = req.session.loginData;
+        const deviceId =
+            req.headers["x-device-id"] ||
+            "DEVICEID124";
 
-      
+        if (!otp) {
+            return res.status(200).json({
+                success: false,
+                message: "OTP is required"
+            });
+        }
+
+        const data =
+            await Otp.findOne({
+                deviceId
+            });
 
         if (!data) {
             return res.status(200).json({
                 success: false,
-                message: "Session expired"
+                message:
+                    "OTP expired or not found"
             });
         }
 
-        if (data.expiresAt < Date.now()) {
+        if (
+            data.expiresAt <
+            new Date()
+        ) {
+
+            await Otp.deleteOne({
+                _id: data._id
+            });
+
             return res.status(200).json({
                 success: false,
                 message: "OTP expired"
             });
         }
 
-        if (data.otp !== otp) {
+        if (
+            data.otp !==
+            String(otp)
+        ) {
             return res.status(200).json({
                 success: false,
                 message: "Invalid OTP"
             });
         }
 
-        // 🎯 Generate JWT after OTP success
-        const token = jwt.sign(
-            {
-                id: data.userId,
-                email: data.email
-            },
-            process.env.JWT_ACCESS_SECRET,
-            { expiresIn: "7d" }
-        );
+        const token =
+            jwt.sign(
+                {
+                    id: data.userId,
+                    email:
+                        data.email
+                },
+                process.env.JWT_ACCESS_SECRET,
+                {
+                    expiresIn: "7d"
+                }
+            );
 
-      
-
-        // clear session (important)
-        req.session.loginData = null;
+        await Otp.deleteOne({
+            _id: data._id
+        });
 
         return res.status(200).json({
             success: true,
-            message: "Login successful",
+            message:
+                "Login successful",
             token
         });
 
     } catch (error) {
+
         return res.status(500).json({
             success: false,
-            message: error.message
+            message:
+                error.message
         });
+
     }
 };
 // 3. Resend OTP API
@@ -424,23 +533,31 @@ export const ResendOTP = async (req, res) => {
 
         const { type } = req.body;
 
-        const record = req.session.loginData;
+        const deviceId =
+            req.headers["X-Device-Id"] ||
+            "DEVICEID124";
+
+        const record = await Otp.findOne({
+            deviceId
+        });
 
         if (!record) {
             return res.status(200).json({
                 success: false,
-                message: "Session expired"
+                message: "OTP session expired"
             });
         }
 
         const now = Date.now();
 
+        // Reset resend counter after 10 minutes
         if (
-            now - record.firstResendAt >
+            now -
+            new Date(record.firstResendAt).getTime() >
             10 * 60 * 1000
         ) {
             record.resendCount = 0;
-            record.firstResendAt = now;
+            record.firstResendAt = new Date(now);
         }
 
         if (record.resendCount >= 3) {
@@ -456,25 +573,20 @@ export const ResendOTP = async (req, res) => {
         ).toString();
 
         record.otp = newOtp;
-        record.expiresAt =
-            now + 5 * 60 * 1000;
+
+        record.expiresAt = new Date(
+            now + 5 * 60 * 1000
+        );
 
         record.resendCount += 1;
+
+        await record.save();
 
         if (type === "email") {
 
             await sendOTPEmail(
                 record.email,
                 newOtp
-            );
-
-        } else if (type === "phone") {
-
-            await sendOTPSms(
-                record.phone,
-                record.countryCode,
-                newOtp,
-                `Your OTP is ${newOtp}`
             );
 
         } else {
@@ -485,8 +597,6 @@ export const ResendOTP = async (req, res) => {
             });
 
         }
-
-        await req.session.save();
 
         return res.status(200).json({
             success: true,
@@ -503,146 +613,227 @@ export const ResendOTP = async (req, res) => {
     }
 };
 
-
 // 5. Forgot Password Flow
 
 export const ForgotPassword = async (req, res) => {
     try {
+
         const { email } = req.body;
+        const deviceId =
+            req.headers["X-Device-Id"] ||
+            "DEVICEID124";
 
-        if (!email)
+        if (!email) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
-                message: "Email is required",
-            });
-
-        const user = await User.findOne({ email });
-        if (!user)
-            return res.status(200).json({
-                success: false,
-                errorCode: "USER_003",
-                message: "User not found",
-            });
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = Date.now() + 5 * 60 * 1000;
-
-        // 🧠 store in session instead of Map
-        req.session.forgotPassword = {
-            email,
-            otp,
-            expiresAt,
-            verified: false,
-        };
-
-        const textMsg = `Your OTP to reset password is: ${otp}. It is valid for 5 minutes.`;
-
-        await sendOTPEmail(email, otp, "Password Reset OTP", textMsg);
-
-        return res.status(200).json({
-            success: true,
-            message: "Password reset OTP sent successfully",
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            errorCode: "SERVER_001",
-            message: error.message,
-        });
-    }
-};
-
-export const VerifyForgotOTP = async (req, res) => {
-    try {
-        const { otp } = req.body;
-
-        const record = req.session.forgotPassword;
-
-        if ( !otp)
-            return res.status(200).json({
-                success: false,
-                errorCode: "VALID_001",
-                message: "Email and OTP are required",
-            });
-
-        if (!record )
-            return res.status(200).json({
-                success: false,
-                errorCode: "OTP_003",
-                message: "No password reset request found",
-            });
-
-        if (Date.now() > record.expiresAt) {
-            req.session.forgotPassword = null;
-            return res.status(200).json({
-                success: false,
-                errorCode: "OTP_001",
-                message: "OTP has expired",
+                message: "Email is required"
             });
         }
 
-        if (record.otp !== String(otp))
+        const user = await User.findOne({ email });
+
+        if (!user) {
             return res.status(200).json({
                 success: false,
-                errorCode: "OTP_001",
-                message: "Invalid OTP",
+                errorCode: "USER_003",
+                message: "User not found"
             });
+        }
 
-        // mark verified
-        req.session.forgotPassword.verified = true;
+        const otp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
+        await Otp.deleteMany({ email });
+
+        await Otp.create({
+            email: user.email,
+            deviceId,
+            otp,
+            userId: user._id,
+            expiresAt: new Date(
+                Date.now() + 5 * 60 * 1000
+            ),
+            verified: false
+        });
+
+        const textMsg =
+            `Your OTP to reset password is: ${otp}. It is valid for 5 minutes.`;
+
+        await sendOTPEmail(
+            email,
+            otp,
+            "Password Reset OTP",
+            textMsg
+        );
 
         return res.status(200).json({
             success: true,
             message:
-                "OTP verified successfully. You can now reset your password.",
+                "Password reset OTP sent successfully"
         });
+
     } catch (error) {
+
         return res.status(500).json({
             success: false,
             errorCode: "SERVER_001",
-            message: error.message,
+            message: error.message
         });
+
+    }
+};
+
+export const VerifyForgotOTP = async (req, res) => {
+
+    try {
+
+        const { otp } = req.body;
+        const deviceId =
+            req.headers["X-Device-Id"] ||
+            "DEVICEID124";
+
+        if (!otp) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "VALID_001",
+                message: "OTP is required"
+            });
+        }
+
+        const record = await Otp.findOne({
+            deviceId
+        });
+
+        if (!record) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_003",
+                message:
+                    "No password reset request found"
+            });
+        }
+
+        if (
+            Date.now() >
+            new Date(record.expiresAt).getTime()
+        ) {
+
+            await Otp.deleteOne({
+                _id: record._id
+            });
+
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_001",
+                message: "OTP has expired"
+            });
+        }
+
+        if (
+            record.otp !== String(otp)
+        ) {
+            return res.status(200).json({
+                success: false,
+                errorCode: "OTP_001",
+                message: "Invalid OTP"
+            });
+        }
+
+        record.verified = true;
+
+        await record.save();
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "OTP verified successfully. You can now reset your password."
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            errorCode: "SERVER_001",
+            message: error.message
+        });
+
     }
 };
 
 export const ResetPassword = async (req, res) => {
+
     try {
-        const { email, newPassword } = req.body;
 
-        const record = req.session.forgotPassword;
+        const {
+            email,
+            newPassword
+        } = req.body;
+       const deviceId = req.headers["X-Device-Id"] || "DEVICEID124";
 
-        if (!email || !newPassword)
+        if (
+            !email ||
+            !newPassword
+        ) {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
-                message: "Email and new password are required",
+                message:
+                    "Email and new password are required"
+            });
+        }
+
+        const record =
+            await Otp.findOne({
+                deviceId,
+                email
             });
 
-        if (!record || !record.verified || record.email !== email)
+        if (
+            !record ||
+            !record.verified
+        ) {
             return res.status(200).json({
                 success: false,
                 errorCode: "AUTH_005",
-                message: "Unauthorized. Please verify OTP first.",
+                message:
+                    "Unauthorized. Please verify OTP first."
             });
+        }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword =
+            await bcrypt.hash(
+                newPassword,
+                10
+            );
 
-        await User.findOneAndUpdate({ email }, { password: hashedPassword });
+        await User.findOneAndUpdate(
+            { email },
+            {
+                password:
+                    hashedPassword
+            }
+        );
 
-        // clear session
-        req.session.forgotPassword = null;
+        await Otp.deleteOne({
+            _id: record._id
+        });
 
         return res.status(200).json({
             success: true,
-            message: "Password reset successfully",
+            message:
+                "Password reset successfully"
         });
+
     } catch (error) {
+
         return res.status(500).json({
             success: false,
             errorCode: "SERVER_001",
-            message: error.message,
+            message: error.message
         });
+
     }
 };
 export const Logout = async (req, res) => {

@@ -40,20 +40,20 @@ app.use(
     cors({
         origin: "*", // frontend URL
         methods: ["GET", "POST", "PUT", "DELETE"],
-        credentials: true
+        
     })
 )
 
-app.use(
-    session({
-        secret: "my-secret-key",
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-            maxAge: 5 * 60 * 1000
-        }
-    })
-);
+// app.use(
+//     session({
+//         secret: "my-secret-key",
+//         resave: false,
+//         saveUninitialized: false,
+//         cookie: {
+//             maxAge: 5 * 60 * 1000
+//         }
+//     })
+// );
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {

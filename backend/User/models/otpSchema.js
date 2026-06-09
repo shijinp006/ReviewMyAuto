@@ -1,20 +1,44 @@
 import mongoose from "mongoose";
 
-const otpSchema = new mongoose.Schema({
+const otpSchema = new mongoose.Schema(
+    {
+        email: {
+            type: String,
+            required: true,
+            index: true
+        },
 
-    email: String,
+        deviceId: {
+            type: String,
+            required: true,
+            index: true
+        },
 
-    otp: String,
+        otp: {
+            type: String,
+            required: true
+        },
 
-    expiresAt: Date,
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true
+        },
 
-    resendCount: {
-        type: Number,
-        default: 0
+        expiresAt: {
+            type: Date,
+            required: true
+        }
+    },
+    {
+        timestamps: true
     }
-
-}, { timestamps: true });
-export default mongoose.model(
-    "OTP",
-    otpSchema
 );
+
+// Auto delete expired OTPs
+otpSchema.index(
+    { expiresAt: 1 },
+    { expireAfterSeconds: 0 }
+);
+
+export const Otp = mongoose.model("Otp", otpSchema);

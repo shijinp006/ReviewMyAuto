@@ -11,14 +11,14 @@ export const AddReview = async (req, res) => {
         const { rating, comment, images } = req.body;
 
         // Extracting IDs from headers as requested
-        const userId = req.headers["x-user-id"] || "6a1ef8a4e13b65f39d3067d3"; // Default for testing
-        const vehicleId = req.headers["x-vehicle-id"] || "6a26dede5efc1fe36abcc57e"; // Default for testing
+        const userId = req.headers["X-User-Id"] || "6a1ef8a4e13b65f39d3067d3"; // Default for testing
+        const vehicleId = req.headers["X-Vehicle-Id"] || "6a26dede5efc1fe36abcc57e"; // Default for testing
 
         if (!userId) {
             return res.status(200).json({
                 success: false,
                 errorCode: "AUTH_001",
-                message: "User ID is required in headers (x-user-id)"
+                message: "User ID is required in headers (X-User-Id)"
             });
         }
 
@@ -26,7 +26,7 @@ export const AddReview = async (req, res) => {
             return res.status(200).json({
                 success: false,
                 errorCode: "VALID_001",
-                message: "Vehicle ID is required in headers (x-vehicle-id)"
+                message: "Vehicle ID is required in headers (X-Vehicle-Id)"
             });
         }
 
