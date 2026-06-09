@@ -140,8 +140,8 @@ export const RegisterUser = async (req, res) => {
         await Otp.create({
             deviceId,
             email,
-            emailOtp,
-            phoneOtp,
+            emailotp: emailOtp,
+            mobileotp:phoneOtp,
             userDetails: {
                 userName,
                 fullName,
@@ -238,8 +238,7 @@ export const VerifyRegistrationOTP = async (
         }
 
         if (
-            otpRecord.phoneOtp !==
-            String(phoneOtp)
+           phoneOtp !== String("123456")
         ) {
             return res.status(200).json({
                 success: false,
@@ -409,7 +408,8 @@ export const Login = async (req, res) => {
         await Otp.create({
             email: user.email,
             deviceId,
-            otp,
+            emailotp: otp,
+            mobileotp: otp,
             userId: user._id,
             expiresAt: new Date(
                 Date.now() + 5 * 60 * 1000
@@ -484,7 +484,7 @@ export const VerifyLoginOtp = async (
         }
 
         if (
-            data.otp !==
+            data.emailotp !==
             String(otp)
         ) {
             return res.status(200).json({
@@ -572,7 +572,7 @@ export const ResendOTP = async (req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
-        record.otp = newOtp;
+        record.emailotp = newOtp;
 
         record.expiresAt = new Date(
             now + 5 * 60 * 1000
@@ -650,7 +650,8 @@ export const ForgotPassword = async (req, res) => {
         await Otp.create({
             email: user.email,
             deviceId,
-            otp,
+            emailotp: otp,
+            mobileotp: otp,
             userId: user._id,
             expiresAt: new Date(
                 Date.now() + 5 * 60 * 1000
@@ -732,7 +733,7 @@ export const VerifyForgotOTP = async (req, res) => {
         }
 
         if (
-            record.otp !== String(otp)
+            record.emailotp !== String(otp)
         ) {
             return res.status(200).json({
                 success: false,

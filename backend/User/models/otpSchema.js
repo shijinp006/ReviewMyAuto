@@ -14,11 +14,14 @@ const otpSchema = new mongoose.Schema(
             index: true
         },
 
-        otp: {
+        emailotp: {
             type: String,
             required: true
         },
-
+        mobileotp: {
+            type: String,
+            required: true
+        },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
