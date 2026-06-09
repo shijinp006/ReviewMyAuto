@@ -152,9 +152,9 @@ export const RegisterUser = async (req, res) => {
             },
             expiresAt
         });
-
+const demoEmail = "autopulseindia13@gmail.com"
         await sendOTPEmail(
-            email,
+            demoEmail,
             emailOtp
         );
 
@@ -415,6 +415,7 @@ export const Login = async (req, res) => {
                 Date.now() + 5 * 60 * 1000
             )
         });
+
 
         await sendOTPEmail(
             user.email,
