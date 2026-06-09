@@ -368,7 +368,8 @@ export const VerifyLoginOtp = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            data
+            data : data,
+            message: "OTP verification endpoint hit"
         });
 
         if (!data) {
