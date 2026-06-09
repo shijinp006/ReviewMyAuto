@@ -372,12 +372,12 @@ export const VerifyLoginOtp = async (req, res) => {
             message: "OTP verification endpoint hit"
         });
 
-        if (!data) {
-            return res.status(200).json({
-                success: false,
-                message: "Session expired"
-            });
-        }
+        // if (!data) {
+        //     return res.status(200).json({
+        //         success: false,
+        //         message: "Session expired"
+        //     });
+        // }
 
         if (data.expiresAt < Date.now()) {
             return res.status(200).json({
