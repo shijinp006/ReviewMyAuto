@@ -366,6 +366,11 @@ export const VerifyLoginOtp = async (req, res) => {
 
         const data = req.session.loginData;
 
+        return res.status(200).json({
+            success: true,
+            data
+        });
+
         if (!data) {
             return res.status(200).json({
                 success: false,
