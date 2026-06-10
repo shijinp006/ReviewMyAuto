@@ -366,8 +366,10 @@ export const VerifyRegistrationOTP = async (
 export const Login = async (req, res) => {
     try {
 
-        const email = "autopulseindia13@gmail.com";
-        const password = "1234abcd";
+        const { email, password } = req.body;
+
+        // const email = "autopulseindia13@gmail.com";
+        // const password = "1234abcd";
 
         const deviceId =
             req.headers["X-Device-Id"] ||
@@ -416,9 +418,10 @@ export const Login = async (req, res) => {
             )
         });
 
+    const demoEmail = "autopulseindia13@gmail.com"
 
         await sendOTPEmail(
-            user.email,
+           demoEmail,
             otp
         );
 
