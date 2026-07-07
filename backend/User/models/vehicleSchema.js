@@ -46,6 +46,13 @@ const vehicleSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  vehicleImages: [
+    {
+      type: String,
+      trim: true,
+    },
+  ],
+
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

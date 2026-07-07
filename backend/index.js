@@ -43,18 +43,12 @@ app.use(
         
     })
 )
+// Serve Static Files
+app.use(
+    "/public",
+    express.static(path.join(process.cwd(), "public"))
+);
 
-// app.use(
-//     session({
-//         secret: "my-secret-key",
-//         resave: false,
-//         saveUninitialized: false,
-//         cookie: {
-//             maxAge: 5 * 60 * 1000
-//         }
-//     })
-// );
-// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log("MongoDB Connected 🚀")
@@ -65,12 +59,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.use("/api", UserRoute)
 
-// // Test Route
-// app.get("/", (req, res) => {
-//     res.send("API Running 🎯")
-// })
 
-// Server
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, () => {

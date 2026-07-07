@@ -16,60 +16,79 @@ export const AddVehicle = async (req, res) => {
             isHybrid,
             variant,
             regNo,
-            brandLogo
         } = req.body;
 
-        // Extracting userId from headers (following the pattern used in Review.js)
-        const userId = req.headers["X-User-Id"] || "6a1ef8a4e13b65f39d3067d3"; // Default fallback for testing if needed
+        const userId =
+            req.headers["X-User-Id"] ||
+            "6a1ef8a4e13b65f39d3067d3";
 
-        // 1. Validation
+        // Validation
         if (!type || !brand || !model || !year || !fuel || !regNo) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
                 errorCode: "VALID_001",
-                message: "All required fields (type, brand, model, year, fuel, regNo) must be provided"
+                message:
+                    "Type, brand, model, year, fuel and regNo are required.",
             });
         }
 
-        // 2. Check if vehicle already exists (Registration number should be unique)
-        const existingVehicle = await Vehicle.findOne({ regNo: regNo.toUpperCase() });
+        // Check duplicate registration number
+        const existingVehicle = await Vehicle.findOne({
+            regNo: regNo.toUpperCase(),
+        });
+
         if (existingVehicle) {
-            return res.status(200).json({
+            return res.status(400).json({
                 success: false,
                 errorCode: "VEHICLE_002",
-                message: "A vehicle with this registration number is already registered"
+                message:
+                    "Vehicle with this registration number already exists.",
             });
         }
 
-        // 3. Dynamic Brand Logo logic (Using a reliable logo API as a "Google-like" source)
-        // If no logo is provided, we generate one using the brand name
-        const finalBrandLogo = brandLogo || `https://logo.clearbit.com/${brand.toLowerCase().replace(/\s+/g, '')}.com`;
+        // Brand Logo
+        let brandLogo = null;
 
-        // 4. Create the vehicle
+        if (req.files?.brandLogo?.length > 0) {
+            brandLogo = `/public/uploads/${req.files.brandLogo[0].filename}`;
+        }
+
+        // Vehicle Images
+        let vehicleImages = [];
+
+        if (req.files?.vehicleImages?.length > 0) {
+            vehicleImages = req.files.vehicleImages.map((file) => ({
+                image: `/public/uploads/${file.filename}`,
+            }));
+        }
+
+        // Create Vehicle
         const vehicle = await Vehicle.create({
             type,
             brand,
             model,
             year,
             fuel,
-            isHybrid: isHybrid || false,
+            isHybrid: isHybrid === "true" || isHybrid === true,
             variant,
             regNo: regNo.toUpperCase(),
-            brandLogo: finalBrandLogo,
-            userId
+            brandLogo,
+            vehicleImages,
+            userId,
         });
 
         return res.status(201).json({
             success: true,
+            message: "Vehicle added successfully.",
             data: vehicle,
-            message: "Vehicle added successfully"
         });
-
     } catch (error) {
+        console.error(error);
+
         return res.status(500).json({
             success: false,
             errorCode: "SERVER_001",
-            message: error.message
+            message: error.message,
         });
     }
 };

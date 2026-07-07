@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken"
 
 const verifyToken = (req, res, next) => {
     // Get token from headers (supporting both plain token and Bearer token)
-    let token = req.headers['authorization'] || req.headers['x-access-token'];
+    let token = req.headers['authorization'] || req.headers['X-Access-Token'];
 
     if (token && token.startsWith('Bearer ')) {
         token = token.split(' ')[1];

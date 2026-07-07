@@ -1,16 +1,18 @@
 import express from "express";
-import { RegisterUser, VerifyLoginOtp,VerifyRegistrationOTP, ResendOTP, Login, ForgotPassword, VerifyForgotOTP, ResetPassword } from "../controls/Auth.js";
+import { RegisterUser, VerifyLoginOtp, VerifyRegistrationOTP, ResendOTP, Login, ForgotPassword, VerifyForgotOTP, ResetPassword } from "../controls/Auth.js";
 import { splashCheck } from "../controls/Splash.js"
 import { refreshTokenController } from "../controls/GenerateRefreshToken.js";
 import { AddReview, GetVehicleReviews } from "../controls/Review.js";
 import { AddVehicle, GetMyVehicles } from "../controls/Vehicle.js";
 import { getAllStatus } from "../controls/Admin.js";
 import verifySession from "../../Middleware/veryifyToken.js";
+import upload from "../../Middleware/multer.js";
+
 
 const router = express.Router();
 
 // Auth Routes
-router.post("/register",RegisterUser);
+router.post("/register", RegisterUser);
 router.post("/verify-registration-otp", VerifyRegistrationOTP);
 router.post("/verify-login-otp", VerifyLoginOtp);
 router.post("/resend-otp", ResendOTP);
@@ -29,7 +31,7 @@ router.post("/add-review", AddReview);
 router.get("/reviews/:vehicleId", GetVehicleReviews);
 
 // Vehicle Routes
-router.post("/add-vehicle", AddVehicle);
+router.post("/add-vehicle", upload.array("images", 10), AddVehicle);
 router.get("/my-vehicles", GetMyVehicles);
 
 // Admin/Dashboard Stats
