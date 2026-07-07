@@ -5,6 +5,7 @@ import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
 import mongoose from "mongoose"
 import session from "express-session";
+import path from "path"
 
 
 
