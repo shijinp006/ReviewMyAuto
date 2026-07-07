@@ -418,10 +418,10 @@ export const Login = async (req, res) => {
             )
         });
 
-    const demoEmail = "autopulseindia13@gmail.com"
+        const demoEmail = "autopulseindia13@gmail.com"
 
         await sendOTPEmail(
-           demoEmail,
+            demoEmail,
             otp
         );
 
@@ -794,7 +794,7 @@ export const ResetPassword = async (req, res) => {
                 deviceId,
             });
 
-    
+
         if (
             !record
         ) {
@@ -840,6 +840,4 @@ export const ResetPassword = async (req, res) => {
 
     }
 };
-export const Logout = async (req, res) => {
-    res.json({ success: true, message: "Logged out successfully" });
-};
+
