@@ -22,13 +22,26 @@ export const AddVehicle = async (req, res) => {
             req.headers["X-User-Id"] ||
             "6a1ef8a4e13b65f39d3067d3";
 
-        // Validation
+        // Validate required fields
         if (!type || !brand || !model || !year || !fuel || !regNo) {
             return res.status(400).json({
                 success: false,
                 errorCode: "VALID_001",
                 message:
-                    "Type, brand, model, year, fuel and regNo are required.",
+                    "Type, Brand, Model, Year, Fuel and Registration Number are required.",
+            });
+        }
+
+        // Vehicle Images are required
+        if (
+            !req.files ||
+            !req.files.vehicleImages ||
+            req.files.vehicleImages.length === 0
+        ) {
+            return res.status(400).json({
+                success: false,
+                errorCode: "VALID_002",
+                message: "Please upload at least one vehicle image.",
             });
         }
 
@@ -40,27 +53,25 @@ export const AddVehicle = async (req, res) => {
         if (existingVehicle) {
             return res.status(400).json({
                 success: false,
-                errorCode: "VEHICLE_002",
-                message:
-                    "Vehicle with this registration number already exists.",
+                errorCode: "VEHICLE_001",
+                message: "Vehicle already exists.",
             });
         }
 
-        // Brand Logo
-        let brandLogo = null;
+        // Brand Logo (Optional)
+        let brandLogo = "";
 
-        if (req.files?.brandLogo?.length > 0) {
+        if (
+            req.files.brandLogo &&
+            req.files.brandLogo.length > 0
+        ) {
             brandLogo = `/public/uploads/${req.files.brandLogo[0].filename}`;
         }
 
-        // Vehicle Images
-        let vehicleImages = [];
-
-        if (req.files?.vehicleImages?.length > 0) {
-            vehicleImages = req.files.vehicleImages.map((file) => ({
-                image: `/public/uploads/${file.filename}`,
-            }));
-        }
+        // Vehicle Images (Required)
+        const vehicleImages = req.files.vehicleImages.map((file) => {
+            return `/public/uploads/${file.filename}`;
+        });
 
         // Create Vehicle
         const vehicle = await Vehicle.create({
@@ -69,7 +80,8 @@ export const AddVehicle = async (req, res) => {
             model,
             year,
             fuel,
-            isHybrid: isHybrid === "true" || isHybrid === true,
+            isHybrid:
+                isHybrid === true || isHybrid === "true",
             variant,
             regNo: regNo.toUpperCase(),
             brandLogo,
@@ -83,7 +95,7 @@ export const AddVehicle = async (req, res) => {
             data: vehicle,
         });
     } catch (error) {
-        console.error(error);
+        console.error("Add Vehicle Error:", error);
 
         return res.status(500).json({
             success: false,

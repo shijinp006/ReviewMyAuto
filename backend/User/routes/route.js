@@ -31,7 +31,10 @@ router.post("/add-review", AddReview);
 router.get("/reviews/:vehicleId", GetVehicleReviews);
 
 // Vehicle Routes
-router.post("/add-vehicle", upload.array("images", 10), AddVehicle);
+router.post("/add-vehicle", upload.fields([
+    { name: "brandLogo", maxCount: 1 },
+    { name: "vehicleImages", maxCount: 10 },
+]), AddVehicle);
 router.get("/my-vehicles", GetMyVehicles);
 
 // Admin/Dashboard Stats
