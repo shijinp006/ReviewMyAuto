@@ -27,7 +27,7 @@ router.post("/refresh-token", refreshTokenController);
 router.post("/device-check", splashCheck);
 
 // Review Routes
-router.post("/add-review", AddReview);
+router.post("/add-review", upload.array("images", 5), AddReview);
 router.get("/reviews/:vehicleId", GetVehicleReviews);
 
 // Vehicle Routes

@@ -8,7 +8,9 @@ import mongoose from "mongoose";
  */
 export const AddReview = async (req, res) => {
     try {
-        const { rating, comment, images } = req.body;
+        const { rating, comment } = req.body;
+
+        const images = req.files ? req.files.map(file => file.path) : [];
 
         // Extracting IDs from headers as requested
         const userId = req.headers["X-User-Id"] || "6a1ef8a4e13b65f39d3067d3"; // Default for testing
